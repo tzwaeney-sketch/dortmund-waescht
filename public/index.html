@@ -226,9 +226,10 @@ footer .legal a{color:var(--muted)}
           <span class="err" id="ePreis" hidden>Bitte einen Preis zwischen 1 und 100 € angeben.</span>
         </div>
         <div class="field">
-          <label for="oWhatsapp">WhatsApp-Nummer</label>
+          <label for="oWhatsapp">WhatsApp-Nummer <span class="hint">nicht öffentlich</span></label>
           <input type="tel" id="oWhatsapp" autocomplete="tel" placeholder="0176 12345678">
           <span class="err" id="eWhatsapp" hidden>Diese Nummer sieht nicht richtig aus.</span>
+          <span class="hint">Steht nirgends auf der Seite. Nur wer dich über „Anfragen“ anschreibt, landet direkt in deinem WhatsApp-Chat.</span>
         </div>
         <div class="field full" style="flex-direction:row;gap:20px;flex-wrap:wrap">
           <label class="check"><input type="checkbox" id="oTrockner"> Ich habe einen Trockner</label>
@@ -243,7 +244,7 @@ footer .legal a{color:var(--muted)}
           <textarea id="oBeschreibung" maxlength="400" placeholder="z. B. 8-kg-Maschine im Keller, Waschmittel ist da. Bitte eigenen Wäschekorb mitbringen."></textarea>
         </div>
         <div class="field full">
-          <label class="check"><input type="checkbox" id="oOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a>, bin mindestens 18 Jahre alt und einverstanden, dass mein Vorname, mein Stadtteil und meine WhatsApp-Nummer öffentlich angezeigt werden (<a href="datenschutz.html" target="_blank">Datenschutz</a>).</span></label>
+          <label class="check"><input type="checkbox" id="oOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a>, bin mindestens 18 Jahre alt und einverstanden, dass mein Vorname und mein Stadtteil angezeigt werden und Interessenten mich über die Seite per WhatsApp anschreiben können (<a href="datenschutz.html" target="_blank">Datenschutz</a>).</span></label>
           <span class="err" id="eOk" hidden>Bitte akzeptiere die Nutzungsbedingungen, damit wir die Anzeige veröffentlichen können.</span>
         </div>
         <div class="hp" aria-hidden="true"><label for="oWebsite">Website</label><input type="text" id="oWebsite" tabindex="-1" autocomplete="off"></div>
@@ -377,7 +378,6 @@ const api = {
     try { await call("POST", `anzeigen/${encodeURIComponent(id)}/loeschen`, { schluessel }); return true; }
     catch (e) { if (/nicht gefunden|passt nicht/.test(e.message)) return false; throw e; }
   },
-  click(id) { if (LIVE) call("POST", `anzeigen/${encodeURIComponent(id)}/kontakt`).catch(() => {}); },
   report(id) { return LIVE ? call("POST", `anzeigen/${encodeURIComponent(id)}/melden`) : Promise.resolve(); }
 };
 
@@ -438,8 +438,8 @@ function card(a) {
         el("button", { class: "btn btn-sun", type: "button", "data-go": "anbieten", text: "Eigene Anzeige erstellen" }),
         el("p", { class: "num", text: "Beispiel. So könnte deine Anzeige aussehen." }))
     : el("div", { class: "contact" },
-        el("a", { class: "btn btn-primary", href: `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener", onclick: () => api.click(a.id) }, "Per WhatsApp anfragen"),
-        el("p", { class: "num" }, "WhatsApp: ", el("span", { text: "+" + a.whatsapp })),
+        el("a", { class: "btn btn-primary", href: LIVE ? `/api/anzeigen/${encodeURIComponent(a.id)}/kontakt` : `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener nofollow" }, "Per WhatsApp anfragen"),
+        el("p", { class: "num", text: "Du landest direkt im WhatsApp-Chat." }),
         reportControl(a.id));
 
   return el("article", { class: "card" + (a.vorschau ? " preview" : "") },

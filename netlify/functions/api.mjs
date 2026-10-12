@@ -4,12 +4,14 @@ import { createHash, randomUUID } from "node:crypto";
 const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 const ANZEIGEN_PRO_TAG = 5;        // pro Internetanschluss
 const MELDUNGEN_BIS_AUSBLENDEN = 3;
-const OEFFENTLICH = ["id", "erstellt", "name", "stadtteil", "angebot", "preis", "trockner", "abholung", "zeiten", "beschreibung", "whatsapp"];
+const OEFFENTLICH = ["id", "erstellt", "name", "stadtteil", "angebot", "preis", "trockner", "abholung", "zeiten", "beschreibung"]; // WhatsApp-Nummer bleibt privat
+const KONTAKTE_PRO_TAG = 30;      // pro Internetanschluss, gegen das Absammeln von Nummern
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status,
   headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
 });
+const weiterleiten = to => new Response(null, { status: 302, headers: { location: to, "cache-control": "no-store", "x-robots-tag": "noindex" } });
 const sha = s => createHash("sha256").update(String(s)).digest("hex");
 const text = (v, max) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
 
@@ -83,6 +85,23 @@ export async function handle(req, ip, { anzeigen, zaehler }) {
     });
   }
 
+  // GET /api/anzeigen/:id/kontakt -> Weiterleitung in den WhatsApp-Chat, die Nummer steht nie auf der Seite
+  if (method === "GET" && parts.length === 3 && parts[0] === "anzeigen" && parts[2] === "kontakt") {
+    const id = parts[1];
+    const a = /^[0-9a-f-]{36}$/.test(id) ? await anzeigen.get(id, { type: "json" }) : null;
+    if (!a || !sichtbar(a)) return weiterleiten("/#finden");
+    const tag = new Date().toISOString().slice(0, 10);
+    const limitKey = "kontakt-" + sha(ip + tag);
+    const count = (await zaehler.get(limitKey, { type: "json" }))?.n || 0;
+    if (count >= KONTAKTE_PRO_TAG) return new Response("Zu viele Anfragen heute. Bitte versuch es morgen wieder.", { status: 429, headers: { "content-type": "text/plain; charset=utf-8" } });
+    await zaehler.setJSON(limitKey, { n: count + 1 });
+    await anzeigen.setJSON(id, { ...a, kontakte: (a.kontakte || 0) + 1 });
+    const typ = a.angebot === "service" ? "Waschen & Falten" : "Maschine nutzen";
+    const preis = Number(a.preis).toLocaleString("de-DE", { minimumFractionDigits: a.preis % 1 ? 2 : 0 }) + " €";
+    const text = `Hallo ${a.name}, ich habe deine Anzeige bei Dortmund wäscht gesehen (${typ}, ${preis}). Wann hättest du Zeit?`;
+    return weiterleiten(`https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`);
+  }
+
   if (method !== "POST") return json(405, { error: "Nicht erlaubt." });
 
   // POST /api/anzeigen
@@ -119,10 +138,6 @@ export async function handle(req, ip, { anzeigen, zaehler }) {
         return json(403, { error: "Der Löschcode passt nicht zu dieser Anzeige." });
       }
       await anzeigen.delete(id);
-      return json(200, { ok: true });
-    }
-    if (aktion === "kontakt") {
-      await anzeigen.setJSON(id, { ...a, kontakte: (a.kontakte || 0) + 1 });
       return json(200, { ok: true });
     }
     if (aktion === "melden") {
