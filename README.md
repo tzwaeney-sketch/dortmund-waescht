@@ -14,7 +14,9 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 
 ## Wie es läuft
 
-- Kunden buchen eine Abholung: Menge (S/M/L/XL), Standard oder Express, Tag und Uhrzeit. Preis: 2,50 €/kg, Express 4 €/kg, Waschen mindestens 15 €. Dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen).
+- Kunden schätzen die Menge per Schieberegler (3–25 kg). Preis: 2,50 €/kg, Express +1,50 €/kg, Mindestbestellwert 15 €, dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen). Abgerechnet wird nach exaktem Wiegen bei der Übergabe.
+- Vor dem Absenden bestätigen Kunden eine Checkliste (nichts Empfindliches, Taschen leer) und bekommen Tipps zu Übergabefoto und Haftung.
+- Wäscher können Push-Benachrichtigungen für ihre Stadtteile aktivieren und bekommen bei jedem neuen Auftrag dort eine Nachricht aufs Handy.
 - Wäscher registrieren sich mit WhatsApp-Nummer und Passwort und nehmen offene Aufträge an (höchstens 3 gleichzeitig). Nach 5 falschen Passwörtern ist die Nummer eine Stunde gesperrt.
 - Kunden finden ihre Aufträge mit WhatsApp-Nummer und 6-stelliger Auftragsnummer.
 - Erst nach der Annahme bekommen beide per Knopfdruck den WhatsApp-Kontakt zueinander. Nummern sind nie öffentlich.
@@ -28,6 +30,8 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 `https://dortmund-waescht.netlify.app/api/statistik` zeigt Wäscher, Aufträge nach Status und den Umsatz erledigter Aufträge.
 
 Preise ändern: in `netlify/functions/api.mjs` (`PREIS`) und in `public/index.html` (`PREIS`) gleich setzen.
+
+Die Schlüssel für Push-Benachrichtigungen erzeugt der Server beim ersten Aufruf selbst und speichert sie in Netlify Blobs. Es muss nichts eingerichtet werden.
 
 ## Dateien
 

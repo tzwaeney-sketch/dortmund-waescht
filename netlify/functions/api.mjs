@@ -1,9 +1,11 @@
 import { getStore } from "@netlify/blobs";
+import webpush from "web-push";
 import { createHash, randomUUID, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 
 export const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
-export const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };          // kg
-export const PREIS = { standard: 2.5, express: 4, minimum: 15, transport: 4 }; // € pro kg, Mindestpreis fürs Waschen, Hol- & Bringpauschale
+export const KG = { min: 3, max: 25 };
+export const PREIS = { kg: 2.5, expressAufschlag: 1.5, minimum: 15, transport: 4 }; // € pro kg, Express-Aufschlag pro kg, Mindestbestellwert fürs Waschen, Hol- & Bringpauschale
+const BETREIBER_MAIL = "albrecht.sven89@gmail.com";
 const ZEITFENSTER = ["08–10 Uhr", "10–12 Uhr", "12–14 Uhr", "14–16 Uhr", "16–18 Uhr", "18–20 Uhr"];
 const TEMPERATUREN = ["30 °C", "40 °C", "60 °C", "Gemischt, bitte sortieren"];
 
@@ -17,6 +19,7 @@ const LOGIN_FEHLER_MAX = 5;      // falsche Passwörter pro Nummer und Stunde
 const FINDEN_PRO_TAG = 20;       // Auftragssuchen pro Internetanschluss
 const SITZUNGEN_MAX = 10;        // gleichzeitig angemeldete Geräte
 const KURZ_ZEICHEN = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const ABOS_PRO_TAG = 10;         // Push-Anmeldungen pro Internetanschluss
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
@@ -41,18 +44,21 @@ function passwortOk(pw, gespeichert) {
 const codePasst = (obj, secret) => obj.codeHash === sha(secret) || (obj.sitzungen || []).includes(sha(secret));
 const mitSitzung = (obj, secret) => ({ ...obj, sitzungen: [sha(secret), ...(obj.sitzungen || [])].slice(0, SITZUNGEN_MAX) });
 
-export function preisFuer(menge, express, abholung) {
-  const kg = MENGEN[menge] || 0;
-  return Math.max(PREIS.minimum, kg * (express ? PREIS.express : PREIS.standard)) + (abholung ? PREIS.transport : 0);
+export function preisFuer(kg, express, abholung) {
+  const waschen = Math.max(PREIS.minimum, kg * (PREIS.kg + (express ? PREIS.expressAufschlag : 0)));
+  return Math.round((waschen + (abholung ? PREIS.transport : 0)) * 100) / 100;
 }
 
+// WhatsApp-Nummer bereinigen: "0176 123 45 67", "+49 (0)176-1234567", "0049176…" → "491761234567"
 export function normalizePhone(raw) {
-  let d = String(raw || "").replace(/[^\d+]/g, "");
+  let d = String(raw || "").trim().replace(/\(0\)/g, "").replace(/[^\d+]/g, "");
   if (d.startsWith("+")) d = d.slice(1);
   else if (d.startsWith("00")) d = d.slice(2);
   else if (d.startsWith("0")) d = "49" + d.slice(1);
-  d = d.replace(/\D/g, "");
-  return /^\d{8,15}$/.test(d) ? d : null;
+  else if (/^1[5-7]\d{8,9}$/.test(d)) d = "49" + d;        // Handynummer ohne führende 0
+  if (!/^\d+$/.test(d)) return null;
+  if (d.startsWith("49")) return /^491[5-7]\d{8,9}$/.test(d) ? d : null; // deutsche Handynummer (015x, 016x, 017x)
+  return /^[1-9]\d{7,14}$/.test(d) ? d : null;                           // Nummer aus dem Ausland
 }
 
 export function validateAuftrag(b) {
@@ -60,7 +66,8 @@ export function validateAuftrag(b) {
   const vorname = text(b.vorname, 40);
   if (vorname.length < 2) return { error: "Bitte gib deinen Vornamen an." };
   if (!STADTTEILE.includes(b.stadtteil)) return { error: "Bitte wähle deinen Stadtteil." };
-  if (!(b.menge in MENGEN)) return { error: "Bitte wähle die Menge." };
+  const kg = Number(b.kg);
+  if (!Number.isInteger(kg) || kg < KG.min || kg > KG.max) return { error: `Bitte wähle zwischen ${KG.min} und ${KG.max} kg.` };
   if (!TEMPERATUREN.includes(b.temperatur)) return { error: "Bitte wähle die Temperatur." };
   if (b.transport !== "abholung" && b.transport !== "selbst") return { error: "Bitte wähle, wie die Wäsche zum Wäscher kommt." };
   if (typeof b.termin !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.termin) || b.termin < heute() || b.termin > tagePlus(heute(), 14)) {
@@ -68,16 +75,17 @@ export function validateAuftrag(b) {
   }
   if (!ZEITFENSTER.includes(b.zeitfenster)) return { error: "Bitte wähle ein Zeitfenster." };
   const whatsapp = normalizePhone(b.whatsapp);
-  if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
+  if (!whatsapp) return { error: "Bitte gib eine Handynummer mit WhatsApp an, z. B. 0176 12345678." };
+  if (b.checkliste !== true) return { error: "Bitte bestätige die Checkliste vor dem Absenden." };
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
   const express = b.express === true;
   const abholung = b.transport === "abholung";
   return {
     auftrag: {
-      vorname, stadtteil: b.stadtteil, menge: b.menge, kg: MENGEN[b.menge], express, transport: b.transport,
+      vorname, stadtteil: b.stadtteil, kg, express, transport: b.transport,
       temperatur: b.temperatur, parfumfrei: b.parfumfrei === true,
       termin: b.termin, zeitfenster: b.zeitfenster, hinweis: text(b.hinweis, 300), whatsapp,
-      preis: preisFuer(b.menge, express, abholung)
+      preis: preisFuer(kg, express, abholung)
     }
   };
 }
@@ -89,7 +97,7 @@ export function validateWaescher(b) {
   const stadtteile = Array.isArray(b.stadtteile) ? [...new Set(b.stadtteile.filter(s => STADTTEILE.includes(s)))] : [];
   if (!stadtteile.length) return { error: "Bitte wähle mindestens einen Stadtteil." };
   const whatsapp = normalizePhone(b.whatsapp);
-  if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
+  if (!whatsapp) return { error: "Bitte gib eine Handynummer mit WhatsApp an, z. B. 0176 12345678." };
   if (typeof b.passwort !== "string" || b.passwort.length < 6 || b.passwort.length > 100) return { error: "Bitte wähle ein Passwort mit mindestens 6 Zeichen." };
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
   return { waescher: { name, stadtteile, whatsapp, trockner: b.trockner === true, auto: b.auto === true } };
@@ -98,7 +106,7 @@ export function validateWaescher(b) {
 // Status, wie Kunden und Wäscher ihn sehen
 const effektiv = a => (a.status === "offen" && a.termin < heute() ? "abgelaufen" : a.status);
 const oeffentlich = a => ({
-  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, menge: a.menge, kg: a.kg, express: a.express, transport: a.transport || "abholung",
+  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport || "abholung",
   temperatur: a.temperatur, parfumfrei: a.parfumfrei, termin: a.termin, zeitfenster: a.zeitfenster, preis: a.preis
 });
 
@@ -137,7 +145,38 @@ const kannBewerten = (a, status) => !a.bewertung && a.waescherId && (status === 
 const waLink = (nummer, nachricht) => `https://wa.me/${nummer}?text=${encodeURIComponent(nachricht)}`;
 const datum = d => new Date(d + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
 
-export async function handle(req, ip, { auftraege, waescher, zaehler }) {
+// ===== Push-Benachrichtigungen für Wäscher =====
+async function vapidSchluessel(zaehler) {
+  let v = await zaehler.get("vapid", { type: "json" });
+  if (!v) { v = webpush.generateVAPIDKeys(); await zaehler.setJSON("vapid", v); }
+  return v;
+}
+const eur = n => Number(n).toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
+export async function benachrichtigen({ abos, zaehler }, a, senden = webpush.sendNotification) {
+  const liste = (await alle(abos)).filter(x => x.stadtteile.includes(a.stadtteil));
+  if (!liste.length) return 0;
+  const v = await vapidSchluessel(zaehler);
+  const payload = JSON.stringify({
+    title: `Neuer Auftrag in ${a.stadtteil}`,
+    body: `ca. ${a.kg} kg · ${datum(a.termin)}, ${a.zeitfenster} · ${eur(a.preis)} für dich`,
+    url: "/#auftraege"
+  });
+  const optionen = { TTL: 6 * 3600, vapidDetails: { subject: "mailto:" + BETREIBER_MAIL, publicKey: v.publicKey, privateKey: v.privateKey } };
+  const ergebnisse = await Promise.allSettled(liste.map(async x => {
+    try { await senden(x.subscription, payload, optionen); }
+    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await abos.delete(x.id); throw e; } // abgelaufene Abos aufräumen
+  }));
+  return ergebnisse.filter(r => r.status === "fulfilled").length;
+}
+function pruefeAbo(sub) {
+  if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string") return null;
+  if (!/^https:\/\//.test(sub.endpoint) || sub.endpoint.length > 1000) return null;
+  const k = sub.keys || {};
+  if (typeof k.p256dh !== "string" || typeof k.auth !== "string" || k.p256dh.length > 200 || k.auth.length > 100) return null;
+  return { endpoint: sub.endpoint, keys: { p256dh: k.p256dh, auth: k.auth } };
+}
+
+export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, senden) {
   const url = new URL(req.url);
   const p = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
   const m = req.method;
@@ -161,12 +200,18 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     return json(200, { anzahl, schnitt: anzahl ? Math.round(summe / anzahl * 10) / 10 : null });
   }
 
+  // GET /api/push/schluessel – öffentlicher Schlüssel für Push-Abos
+  if (m === "GET" && p.length === 2 && p[0] === "push" && p[1] === "schluessel") {
+    return json(200, { publicKey: (await vapidSchluessel(zaehler)).publicKey });
+  }
+
   // GET /api/statistik
   if (m === "GET" && p.length === 1 && p[0] === "statistik") {
     const list = await alle(auftraege);
     const zaehle = s => list.filter(a => effektiv(a) === s).length;
     return json(200, {
       waescher: (await waescher.list()).blobs.length,
+      pushAbos: (await abos.list()).blobs.length,
       auftraege: { offen: zaehle("offen"), angenommen: zaehle("angenommen"), erledigt: zaehle("erledigt"), storniert: zaehle("storniert"), abgelaufen: zaehle("abgelaufen") },
       umsatzErledigt: list.filter(a => a.status === "erledigt").reduce((s, a) => s + a.preis, 0)
     });
@@ -176,6 +221,27 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
   const body = await readBody(req);
   if (!body) return json(400, { error: "Ungültige Anfrage." });
 
+  // POST /api/push/abo – Benachrichtigungen für Stadtteile anmelden oder ändern
+  if (p.length === 2 && p[0] === "push" && p[1] === "abo") {
+    const subscription = pruefeAbo(body.subscription);
+    const stadtteile = Array.isArray(body.stadtteile) ? [...new Set(body.stadtteile.filter(x => STADTTEILE.includes(x)))] : [];
+    if (!subscription) return json(400, { error: "Dein Browser hat keine gültige Anmeldung geschickt." });
+    if (!stadtteile.length) return json(400, { error: "Bitte wähle mindestens einen Stadtteil." });
+    const id = sha(subscription.endpoint);
+    const vorhanden = await abos.get(id, { type: "json" });
+    if (!vorhanden && !(await limit(zaehler, "abo", ip, ABOS_PRO_TAG))) return json(429, { error: "Zu viele Anmeldungen heute. Versuch es morgen wieder." });
+    await abos.setJSON(id, { id, subscription, stadtteile, erstellt: vorhanden?.erstellt || new Date().toISOString() });
+    return json(200, { ok: true, stadtteile });
+  }
+  // POST /api/push/status und /api/push/abmelden
+  if (p.length === 2 && p[0] === "push" && (p[1] === "status" || p[1] === "abmelden")) {
+    if (typeof body.endpoint !== "string") return json(400, { error: "Ungültige Anfrage." });
+    const id = sha(body.endpoint);
+    if (p[1] === "abmelden") { await abos.delete(id); return json(200, { ok: true }); }
+    const a = await abos.get(id, { type: "json" });
+    return json(200, { stadtteile: a ? a.stadtteile : [] });
+  }
+
   // POST /api/auftraege – Kunde gibt Auftrag auf
   if (p.length === 1 && p[0] === "auftraege") {
     const { auftrag, error } = validateAuftrag(body);
@@ -183,6 +249,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     if (!(await limit(zaehler, "auftrag", ip, AUFTRAEGE_PRO_TAG))) return json(429, { error: "Du hast heute schon genug Aufträge aufgegeben. Versuch es morgen wieder." });
     const id = randomUUID(), secret = neuerCode(), kurz = kurzcode();
     await auftraege.setJSON(id, { ...auftrag, id, kurz, erstellt: new Date().toISOString(), status: "offen", codeHash: sha(secret), waescherId: null });
+    try { await benachrichtigen({ abos, zaehler }, auftrag, senden); } catch {} // Push darf eine Buchung nie verhindern
     return json(201, { id, kurz, code: `${id}~${secret}`, preis: auftrag.preis });
   }
 
@@ -358,6 +425,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
 }
 
 export default async (req, context) => handle(req, context.ip || "", {
+  abos: getStore({ name: "abos", consistency: "strong" }),
   auftraege: getStore({ name: "auftraege", consistency: "strong" }),
   waescher: getStore({ name: "waescher", consistency: "strong" }),
   zaehler: getStore({ name: "zaehler", consistency: "strong" })
