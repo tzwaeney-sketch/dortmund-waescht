@@ -14,7 +14,7 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 
 ## Wie es läuft
 
-- Kunden buchen eine Abholung: Menge (S/M/L/XL), Standard oder Express, Tag und Uhrzeit. Preis: 2,50 €/kg, Express 4 €/kg, mindestens 15 €.
+- Kunden buchen eine Abholung: Menge (S/M/L/XL), Standard oder Express, Tag und Uhrzeit. Preis: 2,50 €/kg, Express 4 €/kg, Waschen mindestens 15 €. Dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen).
 - Wäscher melden sich einmal an und nehmen offene Aufträge an (höchstens 3 gleichzeitig).
 - Erst nach der Annahme bekommen beide per Knopfdruck den WhatsApp-Kontakt zueinander. Nummern sind nie öffentlich.
 - Bezahlt wird bei der Rückgabe direkt an den Wäscher. Die Plattform nimmt (noch) kein Geld.

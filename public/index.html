@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f4fd1">
 <title>Dortmund wäscht</title>
-<meta name="description" content="Wäsche abholen lassen in Dortmund: Nachbarn waschen, trocknen und falten deine Wäsche. Ab 2,50 € pro kg, Abholen und Bringen inklusive.">
+<meta name="description" content="Wäsche waschen lassen in Dortmund: Ein Wäscher aus deinem Viertel holt ab, wäscht, trocknet, faltet und bringt zurück. Ab 2,50 € pro kg.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
@@ -178,9 +178,9 @@ footer .legal a{color:var(--muted)}
       <div>
         <p class="eyebrow">Wäsche-Service aus der Nachbarschaft</p>
         <h1 style="margin-top:12px">Deine Wäsche, gewaschen von <em>Nachbarn</em>.</h1>
-        <p class="lead">Leute aus deinem Viertel holen deine Wäsche ab, waschen, trocknen, falten und bringen sie am nächsten Tag zurück.</p>
+        <p class="lead">Ein Wäscher aus deinem Viertel holt deine Wäsche bei dir ab, wäscht, trocknet, faltet und bringt sie am nächsten Tag zurück.</p>
         <div class="ctas">
-          <a class="btn btn-sun" href="#bestellformular">Abholung buchen</a>
+          <a class="btn btn-sun" href="#bestellformular">Wäsche waschen lassen</a>
           <button class="btn btn-ghost" type="button" data-go="waescher">Selbst Geld verdienen</button>
         </div>
       </div>
@@ -188,17 +188,18 @@ footer .legal a{color:var(--muted)}
         <p class="eyebrow">Pflegeetikett · Preis</p>
         <p class="big"><span id="heroPreis">2,50</span><small> € / kg</small></p>
         <ul>
-          <li>Abholen &amp; Bringen inklusive</li>
+          <li>Abholen &amp; Bringen: <span id="heroTransport">4</span> € pauschal</li>
+          <li>Selbst vorbeibringen: ohne Pauschale</li>
           <li>Express am selben Tag: <span id="heroExpress">4</span> € / kg</li>
-          <li>Mindestpreis <span id="heroMin">15</span> € pro Auftrag</li>
+          <li>Waschen mindestens <span id="heroMin">15</span> €</li>
         </ul>
       </aside>
     </div>
 
     <div class="steps">
-      <div class="step"><span class="n">1</span><h3>Abholung buchen</h3><p>Menge, Tag und Uhrzeit wählen. Das dauert eine Minute.</p></div>
-      <div class="step"><span class="n">2</span><h3>Jemand nimmt an</h3><p>Eine Wäscherin oder ein Wäscher aus deiner Nähe meldet sich per WhatsApp und holt ab.</p></div>
-      <div class="step"><span class="n">3</span><h3>Frisch zurück</h3><p>Gewaschen, getrocknet, gefaltet. Du bezahlst bei der Rückgabe, bar oder per PayPal.</p></div>
+      <div class="step"><span class="n">1</span><h3>Auftrag aufgeben</h3><p>Menge, Tag und Uhrzeit wählen. Das dauert eine Minute.</p></div>
+      <div class="step"><span class="n">2</span><h3>Der Wäscher holt ab</h3><p>Eine Wäscherin oder ein Wäscher aus deiner Nähe nimmt an, meldet sich per WhatsApp und holt die Wäsche bei dir ab.</p></div>
+      <div class="step"><span class="n">3</span><h3>Frisch zurück</h3><p>Gewaschen, getrocknet, gefaltet und zu dir gebracht. Du bezahlst bei der Rückgabe, bar oder per PayPal.</p></div>
     </div>
 
     <div class="formwrap" id="bestellformular">
@@ -219,8 +220,15 @@ footer .legal a{color:var(--muted)}
             <label><input type="radio" name="tempo" value="express"><span>Express</span><small>Zurück am selben Tag</small></label>
           </div>
         </div>
+        <div class="field full">
+          <span class="lbl" id="transportLbl">Wie kommt die Wäsche zum Wäscher?</span>
+          <div class="choice" role="radiogroup" aria-labelledby="transportLbl">
+            <label><input type="radio" name="transport" value="abholung" checked><span>Wäscher holt ab und bringt zurück</span><small>+ <span id="transportFee">4 €</span> Pauschale</small></label>
+            <label><input type="radio" name="transport" value="selbst"><span>Ich bringe und hole selbst</span><small>Ohne Pauschale, du bekommst die Adresse per WhatsApp</small></label>
+          </div>
+        </div>
         <div class="field">
-          <label for="oTermin">Abholtag</label>
+          <label for="oTermin" id="terminLbl">Wann soll der Wäscher kommen?</label>
           <input type="date" id="oTermin">
           <span class="err" id="eTermin" hidden>Bitte wähle einen Tag in den nächsten 14 Tagen.</span>
         </div>
@@ -252,7 +260,7 @@ footer .legal a{color:var(--muted)}
         <div class="field full">
           <label for="oHinweis">Hinweis <span class="hint">optional, sieht nur, wer den Auftrag annimmt</span></label>
           <textarea id="oHinweis" maxlength="300" placeholder="z. B. Bettwäsche bitte bei 60 °C, Pullover nicht in den Trockner."></textarea>
-          <span class="hint">Deine Adresse schickst du erst per WhatsApp, wenn jemand angenommen hat.</span>
+          <span class="hint" id="adresseHint">Deine Adresse schickst du erst per WhatsApp, wenn jemand angenommen hat.</span>
         </div>
         <div class="field full">
           <label class="check"><input type="checkbox" id="oOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a> und die <a href="datenschutz.html" target="_blank">Datenschutzerklärung</a>. Meine WhatsApp-Nummer wird nur an die Person weitergegeben, die meinen Auftrag annimmt.</span></label>
@@ -260,7 +268,7 @@ footer .legal a{color:var(--muted)}
         </div>
         <div class="hp" aria-hidden="true"><label for="oWebsite">Website</label><input type="text" id="oWebsite" tabindex="-1" autocomplete="off"></div>
         <div class="field full row-actions">
-          <button class="btn btn-primary" type="submit" id="oSubmit">Abholung buchen</button>
+          <button class="btn btn-primary" type="submit" id="oSubmit">Wäsche waschen lassen</button>
           <span class="status" id="oStatus" aria-live="polite"></span>
         </div>
       </form>
@@ -268,7 +276,7 @@ footer .legal a{color:var(--muted)}
         <p class="eyebrow">Dein Auftrag</p>
         <div id="sumLines"></div>
         <div class="total"><span>Ca.</span><b id="sumTotal">20 €</b></div>
-        <p class="muted" style="font-size:.88rem">Abgerechnet wird nach Gewicht bei der Abholung. Du bezahlst bei der Rückgabe direkt an deine Wäscherin oder deinen Wäscher.</p>
+        <p class="muted" style="font-size:.88rem">Gewogen wird bei der Übergabe, abgerechnet nach Gewicht. Du bezahlst bei der Rückgabe direkt an deine Wäscherin oder deinen Wäscher.</p>
       </aside>
     </div>
   </section>
@@ -337,7 +345,7 @@ footer .legal a{color:var(--muted)}
         <aside style="display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="side">
             <p class="eyebrow">Was du verdienst</p>
-            <p><b>Ein Auftrag mit 8 kg bringt dir <span id="earnM">20 €</span>.</b></p>
+            <p><b>Ein Auftrag mit 8 kg und Abholung bringt dir <span id="earnM">24 €</span>.</b></p>
             <p class="muted">Bei 3 Aufträgen pro Woche sind das etwa <b id="earnMonth">260 €</b> im Monat. Strom, Wasser und Waschmittel zahlst du selbst, das sind grob 1–2 € pro Ladung.</p>
           </div>
           <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
@@ -415,7 +423,7 @@ footer .legal a{color:var(--muted)}
 let LIVE = false; // wird beim Start erkannt
 const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };
-const PREIS = { standard: 2.5, express: 4, minimum: 15 };
+const PREIS = { standard: 2.5, express: 4, minimum: 15, transport: 4 };
 const ORDERS_KEY = "dw-auftraege", WCODE_KEY = "dw-waescher-code";
 
 const $ = id => document.getElementById(id);
@@ -436,7 +444,7 @@ function el(tag, props = {}, ...kids) {
   return n;
 }
 const eur = n => Number(n).toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
-const preisFuer = (menge, express) => Math.max(PREIS.minimum, MENGEN[menge] * (express ? PREIS.express : PREIS.standard));
+const preisFuer = (menge, express, abholung) => Math.max(PREIS.minimum, MENGEN[menge] * (express ? PREIS.express : PREIS.standard)) + (abholung ? PREIS.transport : 0);
 const isoTag = d => d.toLocaleDateString("sv-SE");
 const tagPlus = n => { const d = new Date(); d.setDate(d.getDate() + n); return isoTag(d); };
 function fmtTag(iso) {
@@ -504,26 +512,31 @@ $("wStadtteile").append(...STADTTEILE.map((s, i) => el("label", { class: "check"
 $("heroPreis").textContent = PREIS.standard.toLocaleString("de-DE", { minimumFractionDigits: 2 });
 $("heroExpress").textContent = PREIS.express.toLocaleString("de-DE");
 $("heroMin").textContent = PREIS.minimum;
-$("earnM").textContent = eur(preisFuer("M", false));
-$("earnMonth").textContent = eur(Math.round(preisFuer("M", false) * 3 * 52 / 12 / 10) * 10);
+$("heroTransport").textContent = PREIS.transport;
+$("transportFee").textContent = eur(PREIS.transport);
+$("earnM").textContent = eur(preisFuer("M", false, true));
+$("earnMonth").textContent = eur(Math.round(preisFuer("M", false, true) * 3 * 52 / 12 / 10) * 10);
 
 // ===== Bestellen =====
 const menge = () => document.querySelector('input[name="menge"]:checked').value;
 const express = () => document.querySelector('input[name="tempo"]:checked').value === "express";
+const transport = () => document.querySelector('input[name="transport"]:checked').value;
 $("oTermin").min = tagPlus(0);
 $("oTermin").max = tagPlus(14);
 $("oTermin").value = tagPlus(1);
 
 function updateSummary() {
-  const m = menge(), x = express(), kg = MENGEN[m];
+  const m = menge(), x = express(), kg = MENGEN[m], hol = transport() === "abholung";
   const roh = kg * (x ? PREIS.express : PREIS.standard);
-  const lines = [
-    [`${m} · ca. ${kg} kg × ${eur(x ? PREIS.express : PREIS.standard)}`, eur(roh)],
-    ["Abholen & Bringen", "inklusive"]
-  ];
+  const lines = [[`${m} · ca. ${kg} kg × ${eur(x ? PREIS.express : PREIS.standard)}`, eur(roh)]];
   if (roh < PREIS.minimum) lines.push(["Aufgerundet auf Mindestpreis", eur(PREIS.minimum)]);
+  lines.push(hol ? ["Abholen & Bringen", "+ " + eur(PREIS.transport)] : ["Selbst bringen & holen", "0 €"]);
   $("sumLines").replaceChildren(...lines.map(([k, v]) => el("div", { class: "line" }, el("span", { text: k }), el("span", { text: v }))));
-  $("sumTotal").textContent = eur(preisFuer(m, x));
+  $("sumTotal").textContent = eur(preisFuer(m, x, hol));
+  $("terminLbl").textContent = hol ? "Wann soll der Wäscher kommen?" : "Wann bringst du die Wäsche?";
+  $("adresseHint").textContent = hol
+    ? "Deine Adresse schickst du erst per WhatsApp, wenn jemand angenommen hat."
+    : "Die Adresse des Wäschers bekommst du per WhatsApp, sobald jemand angenommen hat.";
 }
 $("orderForm").addEventListener("change", updateSummary);
 updateSummary();
@@ -532,7 +545,7 @@ $("orderForm").addEventListener("submit", async e => {
   e.preventDefault();
   const termin = $("oTermin").value;
   const daten = {
-    vorname: $("oVorname").value.trim(), stadtteil: $("oStadtteil").value, menge: menge(), express: express(),
+    vorname: $("oVorname").value.trim(), stadtteil: $("oStadtteil").value, menge: menge(), express: express(), transport: transport(),
     temperatur: $("oTemp").value, parfumfrei: $("oParfum").checked, termin, zeitfenster: $("oZeit").value,
     hinweis: $("oHinweis").value.trim(), whatsapp: $("oWhatsapp").value, einverstanden: $("oOk").checked, website: $("oWebsite").value
   };
@@ -550,7 +563,7 @@ $("orderForm").addEventListener("submit", async e => {
     $("orderForm").reset(); $("oTermin").value = tagPlus(1); updateSummary();
     $("oStatus").textContent = "";
     $("justCreated").replaceChildren(el("div", { class: "success" },
-      el("h3", { text: "Deine Abholung ist gebucht" }),
+      el("h3", { text: "Dein Auftrag ist aufgegeben" }),
       el("p", { text: "Sobald jemand aus deiner Nähe annimmt, siehst du es hier und kannst per WhatsApp schreiben. Speichere dir den Auftragscode, dann findest du den Auftrag auch auf einem anderen Gerät." }),
       el("p", { class: "code", text: code }), copyButton(code)));
     show("meine"); window.scrollTo({ top: 0 });
@@ -568,14 +581,14 @@ const STATUS_TEXT = {
   abgelaufen: "Abgelaufen: Niemand hat angenommen"
 };
 function orderSummary(a) {
-  return `${fmtTag(a.termin)}, ${a.zeitfenster} · ${a.menge} (ca. ${a.kg} kg) · ${a.express ? "Express" : "Standard"} · ${a.temperatur}`;
+  return `${fmtTag(a.termin)}, ${a.zeitfenster} · ${a.menge} (ca. ${a.kg} kg) · ${a.express ? "Express" : "Standard"} · ${a.transport === "selbst" ? "Selbst bringen" : "Abholen & Bringen"} · ${a.temperatur}`;
 }
 async function renderOrders() {
   const codes = store.get(ORDERS_KEY, []);
   if (!codes.length) {
     $("myOrders").replaceChildren(el("div", { class: "empty" },
       el("p", { class: "muted", text: "Auf diesem Gerät hast du noch keinen Auftrag." }),
-      el("button", { class: "btn btn-primary", type: "button", "data-go": "bestellen", text: "Abholung buchen" })));
+      el("button", { class: "btn btn-primary", type: "button", "data-go": "bestellen", text: "Wäsche waschen lassen" })));
     return;
   }
   if (!LIVE) return;
@@ -630,7 +643,7 @@ function orderCard(a, code) {
         el("span", { class: "pill " + a.status, text: statusText }),
         el("p", { class: "note", style: "margin-top:10px", text: orderSummary(a) })),
       el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
-    a.status === "angenommen" && el("p", { class: "note", text: "Schick deiner Wäscherin oder deinem Wäscher per WhatsApp deine Adresse und klärt die Details." }),
+    a.status === "angenommen" && el("p", { class: "note", text: a.transport === "selbst" ? "Schreib deiner Wäscherin oder deinem Wäscher per WhatsApp und lass dir die Adresse schicken." : "Schick deiner Wäscherin oder deinem Wäscher per WhatsApp deine Adresse und klärt die Details." }),
     el("div", { class: "foot" }, actions, status, el("p", { class: "note" }, "Auftragscode: ", el("span", { class: "code", style: "display:inline;padding:2px 6px", text: code }))));
 }
 $("codeBtn").addEventListener("click", async () => {
@@ -648,9 +661,9 @@ $("codeBtn").addEventListener("click", async () => {
 
 // ===== Offene Aufträge =====
 const BEISPIELE = [
-  { id: "bsp-1", beispiel: true, stadtteil: "Kreuzviertel", menge: "M", kg: 8, express: false, temperatur: "40 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "18–20 Uhr", preis: preisFuer("M", false) },
-  { id: "bsp-2", beispiel: true, stadtteil: "Barop / Uni", menge: "L", kg: 12, express: false, temperatur: "Gemischt, bitte sortieren", parfumfrei: true, termin: tagPlus(2), zeitfenster: "16–18 Uhr", preis: preisFuer("L", false) },
-  { id: "bsp-3", beispiel: true, stadtteil: "Hörde", menge: "S", kg: 5, express: true, temperatur: "30 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "08–10 Uhr", preis: preisFuer("S", true) }
+  { id: "bsp-1", beispiel: true, stadtteil: "Kreuzviertel", menge: "M", kg: 8, express: false, temperatur: "40 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "18–20 Uhr", transport: "abholung", preis: preisFuer("M", false, true) },
+  { id: "bsp-2", beispiel: true, stadtteil: "Barop / Uni", menge: "L", kg: 12, express: false, temperatur: "Gemischt, bitte sortieren", parfumfrei: true, termin: tagPlus(2), zeitfenster: "16–18 Uhr", transport: "selbst", preis: preisFuer("L", false, false) },
+  { id: "bsp-3", beispiel: true, stadtteil: "Hörde", menge: "S", kg: 5, express: true, temperatur: "30 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "08–10 Uhr", transport: "abholung", preis: preisFuer("S", true, true) }
 ];
 let offene = [];
 let boardLoading = null;
@@ -677,6 +690,7 @@ function jobCard(a) {
     el("div", { class: "chips" },
       el("span", { class: "chip strong", text: `${a.menge} · ca. ${a.kg} kg` }),
       a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
+      el("span", { class: "chip", text: a.transport === "selbst" ? "Kunde bringt selbst" : "Abholen & Bringen" }),
       el("span", { class: "chip", text: a.temperatur }),
       a.parfumfrei && el("span", { class: "chip", text: "Parfümfrei" }),
       a.beispiel && el("span", { class: "chip demo", text: "Beispiel" })),
@@ -778,16 +792,17 @@ function myJobCard(a, wcode) {
   release.addEventListener("click", act("freigeben", release));
   return el("article", { class: "card" },
     el("div", { class: "top" },
-      el("div", {}, el("h3", { text: `${a.vorname}, ${a.stadtteil}` }), el("p", { class: "where", text: `Abholung ${fmtTag(a.termin)}, ${a.zeitfenster}` })),
+      el("div", {}, el("h3", { text: `${a.vorname}, ${a.stadtteil}` }), el("p", { class: "where", text: `${a.transport === "selbst" ? "Bringt vorbei" : "Abholen"}: ${fmtTag(a.termin)}, ${a.zeitfenster}` })),
       el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
     el("div", { class: "chips" },
       el("span", { class: "chip strong", text: `${a.menge} · ca. ${a.kg} kg` }),
       a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
+      el("span", { class: "chip", text: a.transport === "selbst" ? "Kunde bringt selbst" : "Abholen & Bringen" }),
       el("span", { class: "chip", text: a.temperatur }),
       a.parfumfrei && el("span", { class: "chip", text: "Parfümfrei" })),
     a.hinweis && el("p", { class: "note", text: "Hinweis: " + a.hinweis }),
     el("div", { class: "foot" }, el("div", { class: "row-actions" }, wa, done, release), status,
-      el("p", { class: "note", text: "Schreib zuerst per WhatsApp, um die Adresse zu bekommen. Wiege die Wäsche bei der Abholung und rechne nach Gewicht ab." })));
+      el("p", { class: "note", text: a.transport === "selbst" ? "Schreib per WhatsApp und schick deine Adresse. Wiege die Wäsche bei der Übergabe und rechne nach Gewicht ab." : "Schreib zuerst per WhatsApp, um die Adresse zu bekommen. Wiege die Wäsche bei der Abholung und rechne nach Gewicht ab." })));
 }
 $("wLogout").addEventListener("click", () => { store.del(WCODE_KEY); $("wJustCreated").replaceChildren(); renderWaescher(); });
 $("wDelete").addEventListener("click", () => { $("wDelete").hidden = true; $("wDeleteConfirm").hidden = false; });

@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 export const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 export const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };          // kg
-export const PREIS = { standard: 2.5, express: 4, minimum: 15 }; // € pro kg, Mindestpreis
+export const PREIS = { standard: 2.5, express: 4, minimum: 15, transport: 4 }; // € pro kg, Mindestpreis fürs Waschen, Hol- & Bringpauschale
 const ZEITFENSTER = ["08–10 Uhr", "10–12 Uhr", "12–14 Uhr", "14–16 Uhr", "16–18 Uhr", "18–20 Uhr"];
 const TEMPERATUREN = ["30 °C", "40 °C", "60 °C", "Gemischt, bitte sortieren"];
 
@@ -21,9 +21,9 @@ const heute = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/B
 const tagePlus = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 const neuerCode = () => randomUUID().replace(/-/g, "");
 
-export function preisFuer(menge, express) {
+export function preisFuer(menge, express, abholung) {
   const kg = MENGEN[menge] || 0;
-  return Math.max(PREIS.minimum, kg * (express ? PREIS.express : PREIS.standard));
+  return Math.max(PREIS.minimum, kg * (express ? PREIS.express : PREIS.standard)) + (abholung ? PREIS.transport : 0);
 }
 
 export function normalizePhone(raw) {
@@ -42,6 +42,7 @@ export function validateAuftrag(b) {
   if (!STADTTEILE.includes(b.stadtteil)) return { error: "Bitte wähle deinen Stadtteil." };
   if (!(b.menge in MENGEN)) return { error: "Bitte wähle die Menge." };
   if (!TEMPERATUREN.includes(b.temperatur)) return { error: "Bitte wähle die Temperatur." };
+  if (b.transport !== "abholung" && b.transport !== "selbst") return { error: "Bitte wähle, wie die Wäsche zum Wäscher kommt." };
   if (typeof b.termin !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.termin) || b.termin < heute() || b.termin > tagePlus(heute(), 14)) {
     return { error: "Bitte wähle einen Abholtag in den nächsten 14 Tagen." };
   }
@@ -50,12 +51,13 @@ export function validateAuftrag(b) {
   if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
   const express = b.express === true;
+  const abholung = b.transport === "abholung";
   return {
     auftrag: {
-      vorname, stadtteil: b.stadtteil, menge: b.menge, kg: MENGEN[b.menge], express,
+      vorname, stadtteil: b.stadtteil, menge: b.menge, kg: MENGEN[b.menge], express, transport: b.transport,
       temperatur: b.temperatur, parfumfrei: b.parfumfrei === true,
       termin: b.termin, zeitfenster: b.zeitfenster, hinweis: text(b.hinweis, 300), whatsapp,
-      preis: preisFuer(b.menge, express)
+      preis: preisFuer(b.menge, express, abholung)
     }
   };
 }
@@ -75,7 +77,7 @@ export function validateWaescher(b) {
 // Status, wie Kunden und Wäscher ihn sehen
 const effektiv = a => (a.status === "offen" && a.termin < heute() ? "abgelaufen" : a.status);
 const oeffentlich = a => ({
-  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, menge: a.menge, kg: a.kg, express: a.express,
+  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, menge: a.menge, kg: a.kg, express: a.express, transport: a.transport || "abholung",
   temperatur: a.temperatur, parfumfrei: a.parfumfrei, termin: a.termin, zeitfenster: a.zeitfenster, preis: a.preis
 });
 
@@ -211,7 +213,10 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
       }
       const ich = await waescherMitCode(waescher, body.waescherCode);
       if (!ich || ich.id !== w.id) return json(403, { error: "Das ist nicht dein Auftrag." });
-      return json(200, { link: waLink(a.whatsapp, `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: Abholung ${datum(a.termin)}, ${a.zeitfenster}, ca. ${a.kg} kg. Schickst du mir noch deine Adresse?`) });
+      const nachricht = a.transport === "selbst"
+        ? `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: ${datum(a.termin)}, ${a.zeitfenster}, ca. ${a.kg} kg. Du bringst die Wäsche selbst vorbei, ich schicke dir gleich meine Adresse.`
+        : `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: Ich hole ${datum(a.termin)}, ${a.zeitfenster} ab, ca. ${a.kg} kg. Schickst du mir noch deine Adresse?`;
+      return json(200, { link: waLink(a.whatsapp, nachricht) });
     }
 
     // Ab hier nur für angemeldete Wäscher
