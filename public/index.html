@@ -26,6 +26,7 @@
   --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --bad:#ff8a80; color-scheme:dark}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);margin:0;padding-inline:16px}
 .wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;display:flex;flex-direction:column;gap:36px}
 h1,h2,h3{font-family:var(--display);line-height:1.1;text-wrap:balance;margin:0}
@@ -86,6 +87,12 @@ nav{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-
 .card .num{font-size:.85rem;color:var(--muted)}
 .card .num span{user-select:all;font-weight:600;color:var(--ink)}
 
+.examples{display:flex;flex-direction:column;gap:16px;margin-top:8px}
+.ex-head{display:flex;flex-direction:column;gap:6px;max-width:62ch}
+.ex-head h3{font-size:1.4rem}
+.card.example{border-style:dashed;background:transparent}
+.card.preview{box-shadow:0 18px 40px -28px rgba(20,33,58,.5)}
+.fake-btn{opacity:.55;pointer-events:none}
 .empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:14px;padding:32px 24px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
 
 /* form */
@@ -143,7 +150,7 @@ footer .legal a{color:var(--muted)}
     </div>
   </nav>
 
-  <p class="banner" id="demoBanner" hidden><b>Vorschau:</b> So sieht die Seite aus. Echte Anzeigen werden gespeichert, sobald sie bei Netlify online ist. Die gelb markierten Anzeigen sind Beispiele.</p>
+  <p class="banner" id="demoBanner" hidden><b>Vorschau:</b> So sieht die Seite aus. Echte Anzeigen werden gespeichert, sobald sie bei Netlify online ist.</p>
 
   <!-- FINDEN -->
   <section id="view-finden" role="tabpanel" aria-labelledby="tab-finden" style="display:flex;flex-direction:column;gap:24px">
@@ -185,9 +192,18 @@ footer .legal a{color:var(--muted)}
     <p class="count" id="count" aria-live="polite">Anzeigen werden geladen …</p>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty" hidden>
-      <h3>Hier gibt es noch keine Anzeige</h3>
-      <p class="muted">Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.</p>
+      <h3 id="emptyTitle">Hier gibt es noch keine Anzeige</h3>
+      <p class="muted" id="emptyText">Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.</p>
       <button class="btn btn-primary" type="button" data-go="anbieten">Maschine anbieten</button>
+    </div>
+
+    <div class="examples" id="examples" hidden>
+      <div class="ex-head">
+        <p class="eyebrow">Beispiele</p>
+        <h3>So könnte deine Anzeige aussehen</h3>
+        <p class="muted">Diese Anzeigen sind ausgedacht und nicht buchbar. Dortmund wäscht ist gerade gestartet. Trag dich als eine der Ersten ein, dann sehen dich alle Besucher ganz oben.</p>
+      </div>
+      <div class="grid" id="exGrid"></div>
     </div>
   </section>
 
@@ -248,7 +264,12 @@ footer .legal a{color:var(--muted)}
           <span class="status" id="oStatus"></span>
         </div>
       </form>
-      <aside class="side">
+      <aside style="display:flex;flex-direction:column;gap:18px;min-width:0">
+       <div style="display:flex;flex-direction:column;gap:10px">
+        <p class="eyebrow">Vorschau deiner Anzeige</p>
+        <div id="preview"></div>
+       </div>
+       <div class="side">
         <p class="eyebrow">Tipps für Anbieter</p>
         <ul>
           <li>Übliche Preise in Dortmund: <b>4–6 €</b> pro Waschgang, <b>15–22 €</b> für Waschen &amp; Falten.</li>
@@ -256,6 +277,7 @@ footer .legal a{color:var(--muted)}
           <li>Feste Zeiten machen es Kunden leicht.</li>
           <li>Bezahlung und Termine sprecht ihr direkt ab.</li>
         </ul>
+       </div>
       </aside>
     </div>
   </section>
@@ -345,7 +367,7 @@ async function detectBackend() {
 }
 const api = {
   async list() {
-    if (!LIVE) return [...store.get(DEMO_KEY, []), ...BEISPIELE];
+    if (!LIVE) return store.get(DEMO_KEY, []);
     return (await call("GET", "anzeigen")).anzeigen;
   },
   async create(a) {
@@ -419,16 +441,20 @@ function card(a) {
   const service = a.angebot === "service";
   const typ = service ? "Waschen & Falten" : "Maschine nutzen";
   const text = `Hallo ${a.name}, ich habe deine Anzeige bei Dortmund wäscht gesehen (${typ}, ${eur(a.preis)}). Wann hättest du Zeit?`;
-  const contact = a.beispiel
+  const contact = a.vorschau
     ? el("div", { class: "contact" },
-        el("button", { class: "btn btn-ghost", type: "button", disabled: "" , text: "Beispielanzeige" }),
-        el("p", { class: "num", text: "Diese Anzeige ist nur ein Beispiel und hat keine echte Nummer." }))
+        el("span", { class: "btn btn-primary fake-btn", text: "Per WhatsApp anfragen" }),
+        el("p", { class: "num", text: "So sehen Kunden deine Anzeige." }))
+    : a.beispiel
+    ? el("div", { class: "contact" },
+        el("button", { class: "btn btn-sun", type: "button", "data-go": "anbieten", text: "Eigene Anzeige erstellen" }),
+        el("p", { class: "num", text: "Beispiel, nicht buchbar." }))
     : el("div", { class: "contact" },
         el("a", { class: "btn btn-primary", href: `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener", onclick: () => api.click(a.id) }, "Per WhatsApp anfragen"),
         el("p", { class: "num" }, "WhatsApp: ", el("span", { text: "+" + a.whatsapp })),
         reportControl(a.id));
 
-  return el("article", { class: "card" },
+  return el("article", { class: "card" + (a.beispiel ? " example" : "") + (a.vorschau ? " preview" : "") },
     el("div", { class: "top" },
       el("div", {},
         el("h3", { text: a.name }),
@@ -455,7 +481,15 @@ function renderList() {
   else list = [...list].sort((x, y) => (y.erstellt || "").localeCompare(x.erstellt || ""));
   $("grid").replaceChildren(...list.map(card));
   $("empty").hidden = list.length > 0;
+  const start = alle.length === 0;
+  $("emptyTitle").textContent = start ? "Hier entstehen gerade die ersten Anzeigen" : "Hier gibt es noch keine Anzeige";
+  $("emptyText").textContent = start
+    ? "Dortmund wäscht ist neu. Hast du eine Waschmaschine? Dann bist du eine der ersten Personen hier und wirst von allen Besuchern gesehen."
+    : "Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.";
   $("count").textContent = list.length === 1 ? "1 Anzeige" : `${list.length} Anzeigen`;
+  const showExamples = alle.length < 6;
+  $("examples").hidden = !showExamples;
+  if (showExamples) $("exGrid").replaceChildren(...BEISPIELE.slice(0, alle.length < 3 ? 4 : 2).map(card));
 }
 for (const id of ["fStadtteil", "fAngebot", "fSort", "fTrockner", "fAbholung"]) $(id).addEventListener("change", renderList);
 
@@ -475,6 +509,25 @@ function syncPreisHint() {
 }
 $("oMaschine").addEventListener("change", syncPreisHint);
 $("oService").addEventListener("change", syncPreisHint);
+
+function renderPreview() {
+  const preis = parseFloat($("oPreis").value.replace(",", "."));
+  const service = $("oService").checked;
+  $("preview").replaceChildren(card({
+    vorschau: true,
+    name: $("oName").value.trim() || "Dein Vorname",
+    stadtteil: $("oStadtteil").value,
+    angebot: service ? "service" : "maschine",
+    preis: preis >= 1 && preis <= 100 ? preis : (service ? 18 : 5),
+    trockner: $("oTrockner").checked, abholung: $("oAbholung").checked,
+    zeiten: $("oZeiten").value.trim() || "Mo–Fr ab 17 Uhr",
+    beschreibung: $("oBeschreibung").value.trim() || "Hier steht deine kurze Beschreibung, z. B. wo die Maschine steht und was Kunden mitbringen sollen."
+  }));
+}
+$("offerForm").addEventListener("input", renderPreview);
+$("offerForm").addEventListener("change", renderPreview);
+$("offerForm").addEventListener("reset", () => setTimeout(renderPreview));
+renderPreview();
 
 $("offerForm").addEventListener("submit", async e => {
   e.preventDefault();
