@@ -5,308 +5,424 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f4fd1">
 <title>Dortmund wäscht</title>
-<meta name="description" content="Finde eine Waschmaschine oder einen Wäsche-Service in deiner Nachbarschaft in Dortmund.">
+<meta name="description" content="Wäsche abholen lassen in Dortmund: Nachbarn waschen, trocknen und falten deine Wäsche. Ab 2,50 € pro kg, Abholen und Bringen inklusive.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
 <style>
-/* Layout: marketplace with three tabs (Finden / Anbieten / Meine Anzeige); listing cards read like care labels with the price as the big number */
+/* Layout: order-first service page (Wäsche abgeben) with a job board for Wäscher; price per kg is the hero number, like a care label */
 :root{
   --bg:#f3f6fa; --surface:#ffffff; --ink:#14213a; --muted:#56637a; --line:#d8e0eb;
   --accent:#1f4fd1; --accent-ink:#ffffff; --sun:#ffd23f; --sun-ink:#14213a; --soft:#e4ecfb;
-  --ok:#1d7a4a; --bad:#c62828;
+  --ok:#1d7a4a; --ok-soft:#e1f3e8; --bad:#c62828;
   --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0e1626; --surface:#16213a; --ink:#e8eef9; --muted:#9fb0cb; --line:#2a3958;
-  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --bad:#ff8a80; color-scheme:dark}}
+  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --ok-soft:#143826; --bad:#ff8a80; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e1626; --surface:#16213a; --ink:#e8eef9; --muted:#9fb0cb; --line:#2a3958;
-  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --bad:#ff8a80; color-scheme:dark}
+  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --ok-soft:#143826; --bad:#ff8a80; color-scheme:dark}
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);margin:0;padding-inline:16px}
 .wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;display:flex;flex-direction:column;gap:36px}
 h1,h2,h3{font-family:var(--display);line-height:1.1;text-wrap:balance;margin:0}
+h2{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800}
 p{margin:0}
 a{color:var(--accent)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
 .eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .muted{color:var(--muted)}
+.view{display:flex;flex-direction:column;gap:32px}
+.head{display:flex;flex-direction:column;gap:10px;max-width:62ch}
 
 /* nav */
-nav{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+nav.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
 .logo{font-family:var(--display);font-weight:800;font-size:1.25rem;display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
 .drum{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;flex:none}
 .drum i{width:16px;height:16px;border-radius:50%;border:3px solid var(--accent-ink)}
 .tabs{display:flex;gap:4px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:4px;flex-wrap:wrap}
-.tabs button{font:600 .95rem var(--body);border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:999px;cursor:pointer}
+.tabs button{font:600 .92rem var(--body);border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
-
 .banner{background:var(--soft);border-radius:12px;padding:12px 16px;font-size:.92rem}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 1rem var(--body);padding:12px 20px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;transition:transform .15s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 1rem var(--body);padding:12px 20px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;transition:transform .15s;text-align:center}
 .btn:hover{transform:translateY(-1px)}
 .btn:disabled{opacity:.6;cursor:wait;transform:none}
 .btn-primary{background:var(--accent);color:var(--accent-ink)}
 .btn-sun{background:var(--sun);color:var(--sun-ink)}
 .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn-ok{background:var(--ok);color:var(--bg)}
 .btn-danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+.btn-sm{padding:8px 14px;font-size:.9rem}
 
 /* hero */
-.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
-.hero>div{min-width:0;max-width:640px}
-.hero h1{font-size:clamp(2.1rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+.hero{display:grid;grid-template-columns:1.3fr .8fr;gap:36px;align-items:center}
+.hero>*{min-width:0}
+.hero h1{font-size:clamp(2.2rem,6.5vw,4rem);font-weight:800;letter-spacing:-.02em}
 .hero h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--sun) 62%);padding-inline:.06em}
-.hero p{font-size:1.1rem;color:var(--muted);margin-top:12px;max-width:52ch}
+.hero .lead{font-size:1.12rem;color:var(--muted);margin-top:16px;max-width:48ch}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.tag{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:26px 24px 20px;position:relative;transform:rotate(1.5deg);box-shadow:0 18px 40px -24px rgba(20,33,58,.45);display:flex;flex-direction:column;gap:6px;text-align:center}
+.tag::before{content:"";position:absolute;top:14px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg);border:1.5px solid var(--line)}
+.tag .eyebrow{margin-top:12px}
+.tag .big{font-family:var(--display);font-weight:800;font-size:3.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.tag .big small{font-size:1.1rem;font-weight:600;color:var(--muted)}
+.tag ul{list-style:none;margin:12px 0 0;padding:14px 0 0;border-top:1.5px dashed var(--line);display:flex;flex-direction:column;gap:4px;font-size:.92rem}
 
-/* filters */
-.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px}
-.filters .field{flex:1 1 170px}
-.filters .checks{display:flex;gap:16px;flex-wrap:wrap;padding-bottom:10px}
-.count{font-size:.95rem;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.step{display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:3px solid var(--ink)}
+.step .n{font-family:var(--display);font-weight:800;color:var(--accent)}
+.step h3{font-size:1.2rem}
+.step p{color:var(--muted)}
 
-/* listing cards */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
-.card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.card .top>div{min-width:0}
-.card h3{font-size:1.3rem;overflow-wrap:anywhere}
-.card .where{color:var(--muted);font-size:.92rem}
-.card .price{font-family:var(--display);font-weight:800;font-size:1.9rem;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
-.card .per{font-size:.78rem;color:var(--muted);text-align:right;margin-top:4px;max-width:14ch}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font-size:.8rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--ink)}
-.chip.type{background:var(--ink);color:var(--bg)}
-.chip.demo{background:transparent;color:var(--muted);border:1px solid var(--line)}
-.card .desc{font-size:.95rem;overflow-wrap:anywhere}
-.card .times{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
-.card .contact{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1.5px dashed var(--line)}
-.card .num{font-size:.85rem;color:var(--muted)}
-.card .num span{user-select:all;font-weight:600;color:var(--ink)}
-
-.card.preview{box-shadow:0 18px 40px -28px rgba(20,33,58,.5)}
-.fake-btn{opacity:.55;pointer-events:none}
-.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:14px;padding:32px 24px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
-
-/* form */
-.formwrap{display:grid;grid-template-columns:1.3fr .7fr;gap:28px;align-items:start}
+/* forms */
+.formwrap{display:grid;grid-template-columns:1.3fr .8fr;gap:28px;align-items:start}
 .formwrap>*{min-width:0}
 form{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field.full{grid-column:1/-1}
 label,.lbl{font-weight:600;font-size:.92rem}
 .hint{font-size:.82rem;color:var(--muted);font-weight:400}
-input[type=text],input[type=tel],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
-textarea{resize:vertical;min-height:90px}
+input[type=text],input[type=tel],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
+textarea{resize:vertical;min-height:80px}
+.sizes{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sizes label,.choice label{display:flex;flex-direction:column;gap:2px;border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
+.sizes input,.choice input{position:absolute;opacity:0;pointer-events:none}
+.sizes label:has(input:checked),.choice label:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.sizes label:has(input:focus-visible),.choice label:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.sizes b{font-family:var(--display);font-size:1.4rem;line-height:1}
+.sizes small,.choice small{font-weight:400;color:var(--muted);font-size:.82rem}
 .choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.choice label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font-weight:600}
-.choice label span{display:flex;flex-direction:column}
-.choice label small{font-weight:400;color:var(--muted);font-size:.85rem}
-.choice label:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.districts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .check{display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:.95rem}
-input[type=checkbox],input[type=radio]{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--accent)}
+input[type=checkbox]{width:20px;height:20px;margin-top:2px;flex:none;accent-color:var(--accent)}
 .err{color:var(--bad);font-size:.85rem}
+.status{font-size:.9rem;color:var(--muted);min-height:1.4em}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+.summary{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);background:var(--soft);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.summary .line{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.summary .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1.5px solid var(--line);padding-top:12px}
+.summary .total b{font-family:var(--display);font-size:2.2rem;font-weight:800;font-variant-numeric:tabular-nums}
 .side{background:var(--soft);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px}
 .side ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 
-/* my listings */
-.mine{display:flex;flex-direction:column;gap:16px;max-width:720px}
-.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;overflow-wrap:anywhere;user-select:all}
+/* cards */
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px}
+.filters .field{flex:1 1 200px}
+.count{font-size:.95rem;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+.list{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card .top>div{min-width:0}
+.card h3{font-size:1.25rem;overflow-wrap:anywhere}
+.card .where{color:var(--muted);font-size:.92rem}
+.card .price{font-family:var(--display);font-weight:800;font-size:1.9rem;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right}
+.card .per{font-size:.78rem;color:var(--muted);text-align:right;margin-top:4px}
+.card .foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1.5px dashed var(--line)}
+.card .note{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:.8rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--ink)}
+.chip.strong{background:var(--ink);color:var(--bg)}
+.chip.sun{background:var(--sun);color:var(--sun-ink)}
+.chip.demo{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;padding:4px 12px;border-radius:999px;background:var(--soft)}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.offen{color:var(--accent)}
+.pill.angenommen{color:var(--ok);background:var(--ok-soft)}
+.pill.erledigt{color:var(--muted)}
+.pill.storniert,.pill.abgelaufen{color:var(--bad)}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;overflow-wrap:anywhere;user-select:all}
+.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:14px;padding:28px 22px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
 .success{border:1.5px solid var(--ok);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
 .success h3{color:var(--ok)}
-.row-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.status{font-size:.9rem;color:var(--muted);min-height:1.4em}
-.report{font-size:.8rem;color:var(--muted)}
-.linkish{font:inherit;background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer}
-.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 
 footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.88rem;border-top:1px solid var(--line);padding-top:22px}
 footer p{max-width:60ch}
 footer .legal{display:flex;gap:16px;flex-wrap:wrap}
 footer .legal a{color:var(--muted)}
 
-@media (max-width:820px){ .formwrap{grid-template-columns:1fr} }
-@media (max-width:560px){ form{grid-template-columns:1fr;padding:18px} .choice{grid-template-columns:1fr} }
+@media (max-width:860px){
+  .hero,.formwrap{grid-template-columns:1fr}
+  .tag{transform:none;max-width:360px}
+  .steps{grid-template-columns:1fr}
+  .summary{position:static}
+}
+@media (max-width:560px){ form{grid-template-columns:1fr;padding:18px} .sizes{grid-template-columns:1fr 1fr} .choice{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
 </head>
 <body>
-
-
 <div class="wrap">
-  <nav>
-    <a class="logo" href="#finden"><span class="drum"><i></i></span>Dortmund wäscht</a>
+  <nav class="top">
+    <a class="logo" href="#bestellen"><span class="drum"><i></i></span>Dortmund wäscht</a>
     <div class="tabs" role="tablist" aria-label="Bereiche">
-      <button role="tab" id="tab-finden" aria-controls="view-finden" aria-selected="true">Finden</button>
-      <button role="tab" id="tab-anbieten" aria-controls="view-anbieten" aria-selected="false">Anbieten</button>
-      <button role="tab" id="tab-meine" aria-controls="view-meine" aria-selected="false">Meine Anzeige</button>
+      <button role="tab" id="tab-bestellen" aria-controls="view-bestellen" aria-selected="true">Wäsche abgeben</button>
+      <button role="tab" id="tab-auftraege" aria-controls="view-auftraege" aria-selected="false">Offene Aufträge</button>
+      <button role="tab" id="tab-waescher" aria-controls="view-waescher" aria-selected="false">Für Wäscher</button>
+      <button role="tab" id="tab-meine" aria-controls="view-meine" aria-selected="false">Meine Aufträge</button>
     </div>
   </nav>
 
-  <p class="banner" id="demoBanner" hidden><b>Vorschau:</b> So sieht die Seite aus. Echte Anzeigen werden gespeichert, sobald sie bei Netlify online ist.</p>
+  <p class="banner" id="demoBanner" hidden><b>Vorschau:</b> So sieht die Seite aus. Bestellen und Anmelden funktionieren nur auf der echten Seite bei Netlify.</p>
 
-  <!-- FINDEN -->
-  <section id="view-finden" role="tabpanel" aria-labelledby="tab-finden" style="display:flex;flex-direction:column;gap:24px">
+  <!-- WÄSCHE ABGEBEN -->
+  <section class="view" id="view-bestellen" role="tabpanel" aria-labelledby="tab-bestellen">
     <div class="hero">
       <div>
-        <p class="eyebrow">Waschmaschinen aus der Nachbarschaft</p>
-        <h1 style="margin-top:10px">Keine Maschine? <em>Nebenan</em> steht eine.</h1>
-        <p>Nutze die Waschmaschine von Leuten in deinem Viertel, oder lass deine Wäsche komplett waschen und falten. Ihr schreibt euch direkt per WhatsApp.</p>
+        <p class="eyebrow">Wäsche-Service aus der Nachbarschaft</p>
+        <h1 style="margin-top:12px">Deine Wäsche, gewaschen von <em>Nachbarn</em>.</h1>
+        <p class="lead">Leute aus deinem Viertel holen deine Wäsche ab, waschen, trocknen, falten und bringen sie am nächsten Tag zurück.</p>
+        <div class="ctas">
+          <a class="btn btn-sun" href="#bestellformular">Abholung buchen</a>
+          <button class="btn btn-ghost" type="button" data-go="waescher">Selbst Geld verdienen</button>
+        </div>
       </div>
-      <button class="btn btn-sun" type="button" data-go="anbieten">Eigene Maschine anbieten</button>
+      <aside class="tag" aria-label="Preise">
+        <p class="eyebrow">Pflegeetikett · Preis</p>
+        <p class="big"><span id="heroPreis">2,50</span><small> € / kg</small></p>
+        <ul>
+          <li>Abholen &amp; Bringen inklusive</li>
+          <li>Express am selben Tag: <span id="heroExpress">4</span> € / kg</li>
+          <li>Mindestpreis <span id="heroMin">15</span> € pro Auftrag</li>
+        </ul>
+      </aside>
     </div>
 
-    <div class="filters" role="search">
-      <div class="field">
-        <label for="fStadtteil">Stadtteil</label>
-        <select id="fStadtteil"></select>
-      </div>
-      <div class="field">
-        <label for="fAngebot">Was suchst du?</label>
-        <select id="fAngebot">
-          <option value="">Alles</option>
-          <option value="maschine">Maschine selbst nutzen</option>
-          <option value="service">Waschen &amp; Falten lassen</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="fSort">Sortieren</label>
-        <select id="fSort">
-          <option value="neu">Neueste zuerst</option>
-          <option value="preis">Günstigste zuerst</option>
-        </select>
-      </div>
-      <div class="checks">
-        <label class="check"><input type="checkbox" id="fTrockner"> Mit Trockner</label>
-        <label class="check"><input type="checkbox" id="fAbholung"> Mit Abholung</label>
-      </div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>Abholung buchen</h3><p>Menge, Tag und Uhrzeit wählen. Das dauert eine Minute.</p></div>
+      <div class="step"><span class="n">2</span><h3>Jemand nimmt an</h3><p>Eine Wäscherin oder ein Wäscher aus deiner Nähe meldet sich per WhatsApp und holt ab.</p></div>
+      <div class="step"><span class="n">3</span><h3>Frisch zurück</h3><p>Gewaschen, getrocknet, gefaltet. Du bezahlst bei der Rückgabe, bar oder per PayPal.</p></div>
     </div>
 
-    <p class="count" id="count" aria-live="polite">Anzeigen werden geladen …</p>
-    <div class="grid" id="grid"></div>
-    <div class="empty" id="empty" hidden>
-      <h3 id="emptyTitle">Hier gibt es noch keine Anzeige</h3>
-      <p class="muted" id="emptyText">Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.</p>
-      <button class="btn btn-primary" type="button" data-go="anbieten">Maschine anbieten</button>
-    </div>
-
-  </section>
-
-  <!-- ANBIETEN -->
-  <section id="view-anbieten" role="tabpanel" aria-labelledby="tab-anbieten" hidden>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;max-width:62ch">
-      <p class="eyebrow">Anbieten</p>
-      <h2 style="font-size:clamp(1.7rem,4vw,2.4rem)">Verdien Geld mit deiner Waschmaschine</h2>
-      <p class="muted">Anzeige in zwei Minuten erstellen. Kostenlos, ohne Anmeldung. Kunden schreiben dir direkt per WhatsApp.</p>
-    </div>
-    <div class="formwrap">
-      <form id="offerForm" novalidate>
+    <div class="formwrap" id="bestellformular">
+      <form id="orderForm" novalidate>
         <div class="field full">
-          <span class="lbl" id="angebotLbl">Was bietest du an?</span>
-          <div class="choice" role="radiogroup" aria-labelledby="angebotLbl">
-            <label><input type="radio" name="angebot" id="oMaschine" value="maschine" checked><span>Maschine nutzen<small>Kunden kommen vorbei und waschen selbst</small></span></label>
-            <label><input type="radio" name="angebot" id="oService" value="service"><span>Waschen &amp; Falten<small>Du erledigst alles für sie</small></span></label>
+          <span class="lbl" id="mengeLbl">Wie viel Wäsche?</span>
+          <div class="sizes" role="radiogroup" aria-labelledby="mengeLbl">
+            <label><input type="radio" name="menge" value="S"><b>S</b><span>ca. 5 kg</span><small>1 Wäschekorb</small></label>
+            <label><input type="radio" name="menge" value="M" checked><b>M</b><span>ca. 8 kg</span><small>1 großer Sack</small></label>
+            <label><input type="radio" name="menge" value="L"><b>L</b><span>ca. 12 kg</span><small>2 Säcke</small></label>
+            <label><input type="radio" name="menge" value="XL"><b>XL</b><span>ca. 18 kg</span><small>Familien-Woche</small></label>
+          </div>
+        </div>
+        <div class="field full">
+          <span class="lbl" id="tempoLbl">Wie schnell?</span>
+          <div class="choice" role="radiogroup" aria-labelledby="tempoLbl">
+            <label><input type="radio" name="tempo" value="standard" checked><span>Standard</span><small>Zurück am nächsten Tag</small></label>
+            <label><input type="radio" name="tempo" value="express"><span>Express</span><small>Zurück am selben Tag</small></label>
           </div>
         </div>
         <div class="field">
-          <label for="oName">Vorname</label>
-          <input type="text" id="oName" maxlength="40" autocomplete="given-name" placeholder="z. B. Aylin">
-          <span class="err" id="eName" hidden>Bitte gib deinen Vornamen an.</span>
+          <label for="oTermin">Abholtag</label>
+          <input type="date" id="oTermin">
+          <span class="err" id="eTermin" hidden>Bitte wähle einen Tag in den nächsten 14 Tagen.</span>
+        </div>
+        <div class="field">
+          <label for="oZeit">Uhrzeit</label>
+          <select id="oZeit"><option>08–10 Uhr</option><option>10–12 Uhr</option><option>12–14 Uhr</option><option>14–16 Uhr</option><option>16–18 Uhr</option><option selected>18–20 Uhr</option></select>
         </div>
         <div class="field">
           <label for="oStadtteil">Stadtteil</label>
           <select id="oStadtteil"></select>
         </div>
         <div class="field">
-          <label for="oPreis">Preis in € <span class="hint" id="preisHint">pro Waschgang</span></label>
-          <input type="text" id="oPreis" inputmode="decimal" placeholder="z. B. 5">
-          <span class="err" id="ePreis" hidden>Bitte einen Preis zwischen 1 und 100 € angeben.</span>
+          <label for="oTemp">Temperatur</label>
+          <select id="oTemp"><option>30 °C</option><option selected>40 °C</option><option>60 °C</option><option>Gemischt, bitte sortieren</option></select>
+        </div>
+        <div class="field">
+          <label for="oVorname">Vorname</label>
+          <input type="text" id="oVorname" maxlength="40" autocomplete="given-name" placeholder="z. B. Lena">
+          <span class="err" id="eVorname" hidden>Bitte gib deinen Vornamen an.</span>
         </div>
         <div class="field">
           <label for="oWhatsapp">WhatsApp-Nummer <span class="hint">nicht öffentlich</span></label>
           <input type="tel" id="oWhatsapp" autocomplete="tel" placeholder="0176 12345678">
           <span class="err" id="eWhatsapp" hidden>Diese Nummer sieht nicht richtig aus.</span>
-          <span class="hint">Steht nirgends auf der Seite. Nur wer dich über „Anfragen“ anschreibt, landet direkt in deinem WhatsApp-Chat.</span>
-        </div>
-        <div class="field full" style="flex-direction:row;gap:20px;flex-wrap:wrap">
-          <label class="check"><input type="checkbox" id="oTrockner"> Ich habe einen Trockner</label>
-          <label class="check"><input type="checkbox" id="oAbholung"> Ich hole ab und bringe zurück</label>
         </div>
         <div class="field full">
-          <label for="oZeiten">Wann geht es? <span class="hint">optional</span></label>
-          <input type="text" id="oZeiten" maxlength="120" placeholder="z. B. Mo–Fr ab 17 Uhr, Sa ganztags">
+          <label class="check"><input type="checkbox" id="oParfum"> Parfümfreies Waschmittel</label>
         </div>
         <div class="field full">
-          <label for="oBeschreibung">Kurze Beschreibung <span class="hint">optional</span></label>
-          <textarea id="oBeschreibung" maxlength="400" placeholder="z. B. 8-kg-Maschine im Keller, Waschmittel ist da. Bitte eigenen Wäschekorb mitbringen."></textarea>
+          <label for="oHinweis">Hinweis <span class="hint">optional, sieht nur, wer den Auftrag annimmt</span></label>
+          <textarea id="oHinweis" maxlength="300" placeholder="z. B. Bettwäsche bitte bei 60 °C, Pullover nicht in den Trockner."></textarea>
+          <span class="hint">Deine Adresse schickst du erst per WhatsApp, wenn jemand angenommen hat.</span>
         </div>
         <div class="field full">
-          <label class="check"><input type="checkbox" id="oOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a>, bin mindestens 18 Jahre alt und einverstanden, dass mein Vorname und mein Stadtteil angezeigt werden und Interessenten mich über die Seite per WhatsApp anschreiben können (<a href="datenschutz.html" target="_blank">Datenschutz</a>).</span></label>
-          <span class="err" id="eOk" hidden>Bitte akzeptiere die Nutzungsbedingungen, damit wir die Anzeige veröffentlichen können.</span>
+          <label class="check"><input type="checkbox" id="oOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a> und die <a href="datenschutz.html" target="_blank">Datenschutzerklärung</a>. Meine WhatsApp-Nummer wird nur an die Person weitergegeben, die meinen Auftrag annimmt.</span></label>
+          <span class="err" id="eOk" hidden>Bitte akzeptiere die Nutzungsbedingungen.</span>
         </div>
         <div class="hp" aria-hidden="true"><label for="oWebsite">Website</label><input type="text" id="oWebsite" tabindex="-1" autocomplete="off"></div>
         <div class="field full row-actions">
-          <button class="btn btn-primary" type="submit" id="oSubmit">Anzeige veröffentlichen</button>
-          <span class="status" id="oStatus"></span>
+          <button class="btn btn-primary" type="submit" id="oSubmit">Abholung buchen</button>
+          <span class="status" id="oStatus" aria-live="polite"></span>
         </div>
       </form>
-      <aside style="display:flex;flex-direction:column;gap:18px;min-width:0">
-       <div style="display:flex;flex-direction:column;gap:10px">
-        <p class="eyebrow">Vorschau deiner Anzeige</p>
-        <div id="preview"></div>
-       </div>
-       <div class="side">
-        <p class="eyebrow">Tipps für Anbieter</p>
-        <ul>
-          <li>Übliche Preise in Dortmund: <b>4–6 €</b> pro Waschgang, <b>15–22 €</b> für Waschen &amp; Falten.</li>
-          <li>Mit Trockner bekommst du deutlich mehr Anfragen.</li>
-          <li>Feste Zeiten machen es Kunden leicht.</li>
-          <li>Bezahlung und Termine sprecht ihr direkt ab.</li>
-        </ul>
-       </div>
+      <aside class="summary" aria-live="polite">
+        <p class="eyebrow">Dein Auftrag</p>
+        <div id="sumLines"></div>
+        <div class="total"><span>Ca.</span><b id="sumTotal">20 €</b></div>
+        <p class="muted" style="font-size:.88rem">Abgerechnet wird nach Gewicht bei der Abholung. Du bezahlst bei der Rückgabe direkt an deine Wäscherin oder deinen Wäscher.</p>
       </aside>
     </div>
   </section>
 
-  <!-- MEINE ANZEIGE -->
-  <section id="view-meine" role="tabpanel" aria-labelledby="tab-meine" hidden>
-    <div class="mine">
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <p class="eyebrow">Meine Anzeige</p>
-        <h2 style="font-size:clamp(1.7rem,4vw,2.4rem)">Deine Anzeigen verwalten</h2>
+  <!-- OFFENE AUFTRÄGE -->
+  <section class="view" id="view-auftraege" role="tabpanel" aria-labelledby="tab-auftraege" hidden>
+    <div class="head">
+      <p class="eyebrow">Offene Aufträge</p>
+      <h2>Verdien Geld mit deiner Waschmaschine</h2>
+      <p class="muted">Such dir einen Auftrag in deiner Nähe aus. Du holst ab, wäschst, faltest und bringst zurück. Das Geld bekommst du bei der Rückgabe.</p>
+    </div>
+    <div class="filters">
+      <div class="field">
+        <label for="fStadtteil">Stadtteil</label>
+        <select id="fStadtteil"></select>
       </div>
-      <div id="justCreated"></div>
-      <div id="mineList" style="display:flex;flex-direction:column;gap:16px"></div>
-      <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
-        <label for="codeInput">Anzeige mit Löschcode entfernen</label>
-        <p class="muted" style="font-size:.9rem">Du hast den Löschcode bekommen, als du die Anzeige erstellt hast. Damit kannst du sie auch auf einem anderen Gerät löschen.</p>
-        <input type="text" id="codeInput" placeholder="Löschcode einfügen">
-        <div class="row-actions">
-          <button class="btn btn-danger" type="button" id="codeDelete">Anzeige löschen</button>
-          <span class="status" id="codeStatus"></span>
+      <button class="btn btn-sun" type="button" data-go="waescher" id="boardCta">Als Wäscher anmelden</button>
+    </div>
+    <p class="count" id="count" aria-live="polite">Aufträge werden geladen …</p>
+    <div class="grid" id="board"></div>
+    <div class="empty" id="boardEmpty" hidden>
+      <h3>Gerade keine offenen Aufträge hier</h3>
+      <p class="muted">Schau später wieder vorbei oder wähle einen anderen Stadtteil.</p>
+    </div>
+  </section>
+
+  <!-- FÜR WÄSCHER -->
+  <section class="view" id="view-waescher" role="tabpanel" aria-labelledby="tab-waescher" hidden>
+    <div id="wLoggedOut" class="view">
+      <div class="head">
+        <p class="eyebrow">Für Wäscher</p>
+        <h2>Wasch für Nachbarn und verdien nebenbei Geld</h2>
+        <p class="muted">Kostenlos anmelden, Aufträge in deinem Viertel annehmen, waschen, falten, zurückbringen. Du entscheidest selbst, wann und wie viel.</p>
+      </div>
+      <div class="formwrap">
+        <form id="wForm" novalidate>
+          <div class="field">
+            <label for="wName">Vorname</label>
+            <input type="text" id="wName" maxlength="40" autocomplete="given-name" placeholder="z. B. Aylin">
+            <span class="err" id="ewName" hidden>Bitte gib deinen Vornamen an.</span>
+          </div>
+          <div class="field">
+            <label for="wWhatsapp">WhatsApp-Nummer <span class="hint">nicht öffentlich</span></label>
+            <input type="tel" id="wWhatsapp" autocomplete="tel" placeholder="0176 12345678">
+            <span class="err" id="ewWhatsapp" hidden>Diese Nummer sieht nicht richtig aus.</span>
+          </div>
+          <div class="field full">
+            <span class="lbl" id="wStLbl">In welchen Stadtteilen holst du ab?</span>
+            <div class="districts" id="wStadtteile" role="group" aria-labelledby="wStLbl"></div>
+            <span class="err" id="ewStadtteile" hidden>Bitte wähle mindestens einen Stadtteil.</span>
+          </div>
+          <div class="field full" style="flex-direction:row;gap:20px;flex-wrap:wrap">
+            <label class="check"><input type="checkbox" id="wTrockner"> Ich habe einen Trockner</label>
+            <label class="check"><input type="checkbox" id="wAuto"> Ich habe ein Auto oder Fahrrad mit Anhänger</label>
+          </div>
+          <div class="field full">
+            <label class="check"><input type="checkbox" id="wOk"> <span>Ich akzeptiere die <a href="nutzungsbedingungen.html" target="_blank">Nutzungsbedingungen</a> und die <a href="datenschutz.html" target="_blank">Datenschutzerklärung</a>, bin mindestens 18 Jahre alt und kümmere mich selbst um Steuern, Versicherung und eine eventuell nötige Gewerbeanmeldung.</span></label>
+            <span class="err" id="ewOk" hidden>Bitte akzeptiere die Nutzungsbedingungen.</span>
+          </div>
+          <div class="hp" aria-hidden="true"><label for="wWebsite">Website</label><input type="text" id="wWebsite" tabindex="-1" autocomplete="off"></div>
+          <div class="field full row-actions">
+            <button class="btn btn-primary" type="submit" id="wSubmit">Kostenlos anmelden</button>
+            <span class="status" id="wStatus" aria-live="polite"></span>
+          </div>
+        </form>
+        <aside style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div class="side">
+            <p class="eyebrow">Was du verdienst</p>
+            <p><b>Ein Auftrag mit 8 kg bringt dir <span id="earnM">20 €</span>.</b></p>
+            <p class="muted">Bei 3 Aufträgen pro Woche sind das etwa <b id="earnMonth">260 €</b> im Monat. Strom, Wasser und Waschmittel zahlst du selbst, das sind grob 1–2 € pro Ladung.</p>
+          </div>
+          <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
+            <p class="eyebrow">So läuft's</p>
+            <ul>
+              <li>Jeder Auftrag wird einzeln gewaschen, nie mit fremder Wäsche gemischt.</li>
+              <li>Pflegeetiketten beachten, im Zweifel lieber kälter waschen.</li>
+              <li>Pünktlich sein: Standard kommt am nächsten Tag zurück, Express am selben Tag.</li>
+              <li>Abrechnung nach Gewicht. Eine Kofferwaage kostet etwa 10 €.</li>
+            </ul>
+          </div>
+          <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
+            <label for="wCodeInput">Schon angemeldet?</label>
+            <p class="muted" style="font-size:.9rem">Füge deinen Wäscher-Code ein, um dich auf diesem Gerät anzumelden.</p>
+            <input type="text" id="wCodeInput" placeholder="Wäscher-Code">
+            <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" id="wCodeBtn">Anmelden</button><span class="status" id="wCodeStatus"></span></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="wLoggedIn" class="view" hidden>
+      <div class="head">
+        <p class="eyebrow">Für Wäscher</p>
+        <h2 id="wHello">Hallo!</h2>
+        <p class="muted" id="wInfo"></p>
+      </div>
+      <div id="wJustCreated"></div>
+      <div class="row-actions">
+        <button class="btn btn-sun" type="button" data-go="auftraege">Offene Aufträge ansehen</button>
+      </div>
+      <div>
+        <p class="eyebrow" style="margin-bottom:12px">Deine angenommenen Aufträge</p>
+        <div class="list" id="wJobs"></div>
+      </div>
+      <details class="side" style="background:var(--surface);border:1.5px solid var(--line)">
+        <summary style="cursor:pointer;font-weight:600">Wäscher-Code und Profil</summary>
+        <p class="muted" style="font-size:.9rem;margin-top:10px">Mit diesem Code meldest du dich auf einem anderen Gerät an. Gib ihn niemandem weiter.</p>
+        <p class="code" id="wCodeShow"></p>
+        <div class="row-actions" style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm" type="button" id="wLogout">Auf diesem Gerät abmelden</button>
+          <button class="btn btn-danger btn-sm" type="button" id="wDelete">Profil löschen</button>
+          <span id="wDeleteConfirm" hidden>Wirklich löschen? Deine angenommenen Aufträge werden wieder freigegeben.
+            <button class="btn btn-danger btn-sm" type="button" id="wDeleteYes">Ja, löschen</button>
+            <button class="btn btn-ghost btn-sm" type="button" id="wDeleteNo">Abbrechen</button></span>
+          <span class="status" id="wProfileStatus"></span>
         </div>
-      </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- MEINE AUFTRÄGE -->
+  <section class="view" id="view-meine" role="tabpanel" aria-labelledby="tab-meine" hidden>
+    <div class="head">
+      <p class="eyebrow">Meine Aufträge</p>
+      <h2>Deine Wäsche im Blick</h2>
+    </div>
+    <div id="justCreated"></div>
+    <div class="list" id="myOrders"></div>
+    <div class="side" style="background:var(--surface);border:1.5px solid var(--line);max-width:640px">
+      <label for="codeInput">Auftrag mit Code öffnen</label>
+      <p class="muted" style="font-size:.9rem">Du hast den Auftragscode nach der Buchung bekommen. Damit siehst du deinen Auftrag auch auf einem anderen Gerät.</p>
+      <input type="text" id="codeInput" placeholder="Auftragscode">
+      <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" id="codeBtn">Auftrag öffnen</button><span class="status" id="codeStatus"></span></div>
     </div>
   </section>
 
   <footer>
-    <p><b>Dortmund wäscht ist nur eine Vermittlungsplattform.</b> Verträge kommen ausschließlich zwischen Anbieter und Kunde zustande. Wir sind nicht Vertragspartei und prüfen weder Nutzer noch Anzeigen.</p>
+    <p><b>Dortmund wäscht vermittelt nur.</b> Der Vertrag über das Waschen kommt direkt zwischen Kunde und Wäscherin oder Wäscher zustande. Bezahlt wird direkt untereinander. Wir prüfen weder Nutzer noch Aufträge.</p>
     <nav class="legal" aria-label="Rechtliches"><a href="nutzungsbedingungen.html">Nutzungsbedingungen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
   </footer>
 </div>
 
 <script>
-let LIVE = false; // wird beim Start erkannt: läuft die Seite bei Netlify, ist sie live
+let LIVE = false; // wird beim Start erkannt
 const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
-const DEMO_KEY = "dw-demo-anzeigen", MINE_KEY = "dw-meine-anzeigen";
+const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };
+const PREIS = { standard: 2.5, express: 4, minimum: 15 };
+const ORDERS_KEY = "dw-auftraege", WCODE_KEY = "dw-waescher-code";
 
 const $ = id => document.getElementById(id);
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
 };
 function el(tag, props = {}, ...kids) {
   const n = document.createElement(tag);
@@ -319,9 +435,15 @@ function el(tag, props = {}, ...kids) {
   for (const c of kids) if (c != null && c !== false) n.append(c);
   return n;
 }
-function eur(n) {
-  n = Number(n);
-  return n.toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
+const eur = n => Number(n).toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
+const preisFuer = (menge, express) => Math.max(PREIS.minimum, MENGEN[menge] * (express ? PREIS.express : PREIS.standard));
+const isoTag = d => d.toLocaleDateString("sv-SE");
+const tagPlus = n => { const d = new Date(); d.setDate(d.getDate() + n); return isoTag(d); };
+function fmtTag(iso) {
+  if (iso === tagPlus(0)) return "Heute";
+  if (iso === tagPlus(1)) return "Morgen";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
 }
 function normalizePhone(raw) {
   let d = String(raw || "").replace(/[^\d+]/g, "");
@@ -331,65 +453,42 @@ function normalizePhone(raw) {
   d = d.replace(/\D/g, "");
   return /^\d{8,15}$/.test(d) ? d : null;
 }
+function copyButton(text) {
+  const status = el("span", { class: "status" });
+  const btn = el("button", { class: "btn btn-ghost btn-sm", type: "button", text: "Code kopieren" });
+  btn.addEventListener("click", () => {
+    try {
+      navigator.clipboard.writeText(text).then(() => { status.textContent = "Kopiert."; }, () => { status.textContent = "Bitte den Code markieren und kopieren."; });
+    } catch { status.textContent = "Bitte den Code markieren und kopieren."; }
+  });
+  return el("div", { class: "row-actions" }, btn, status);
+}
 
-// Beispiele, nur im Demo-Modus sichtbar
-const daysAgo = n => new Date(Date.now() - n * 864e5).toISOString();
-const BEISPIELE = [
-  { id: "bsp-1", erstellt: daysAgo(1), name: "Aylin", stadtteil: "Kreuzviertel", angebot: "service", preis: 18, trockner: true, abholung: true, zeiten: "Mo–Fr ab 17 Uhr, Sa ganztags", beschreibung: "Ich wasche, trockne und falte. Parfümfreies Waschmittel auf Wunsch.", whatsapp: "4915100000001", beispiel: true },
-  { id: "bsp-2", erstellt: daysAgo(2), name: "Jonas", stadtteil: "Barop / Uni", angebot: "maschine", preis: 4, trockner: false, abholung: false, zeiten: "Täglich 9–21 Uhr", beschreibung: "8-kg-Maschine im Keller vom Wohnheim, Waschmittel kannst du mitbenutzen.", whatsapp: "4915100000002", beispiel: true },
-  { id: "bsp-3", erstellt: daysAgo(3), name: "Renate", stadtteil: "Hörde", angebot: "maschine", preis: 5.5, trockner: true, abholung: false, zeiten: "Vormittags", beschreibung: "Ruhige Wohnung nahe Phoenix-See. Während die Maschine läuft, gibt's Kaffee.", whatsapp: "4915100000003", beispiel: true },
-  { id: "bsp-4", erstellt: daysAgo(5), name: "Mehmet", stadtteil: "Nordstadt", angebot: "service", preis: 15, trockner: true, abholung: false, zeiten: "Abgabe bis 10 Uhr, Abholung ab 18 Uhr", beschreibung: "Waschen, trocknen, falten. Gerne auch Bettwäsche und Handtücher bei 60 °C.", whatsapp: "4915100000004", beispiel: true }
-];
-
-// ===== Datenzugriff =====
+// ===== Server =====
 async function call(method, path, body) {
   const res = await fetch("/api/" + path, {
     method, headers: body ? { "content-type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined, keepalive: method === "POST"
+    body: body ? JSON.stringify(body) : undefined
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "Es gab einen Fehler. Bitte versuch es noch einmal.");
+  if (!res.ok) { const e = new Error(data.error || "Es gab einen Fehler. Bitte versuch es noch einmal."); e.status = res.status; throw e; }
   return data;
 }
 async function detectBackend() {
-  try { const d = await call("GET", "anzeigen"); return Array.isArray(d.anzeigen); } catch { return false; }
+  try { return Array.isArray((await call("GET", "auftraege")).auftraege); } catch { return false; }
 }
-const api = {
-  async list() {
-    if (!LIVE) return store.get(DEMO_KEY, []);
-    return (await call("GET", "anzeigen")).anzeigen;
-  },
-  async create(a) {
-    if (!LIVE) {
-      const id = "lokal-" + Date.now().toString(36);
-      const schluessel = Math.random().toString(36).slice(2, 12);
-      store.set(DEMO_KEY, [{ ...a, id, erstellt: new Date().toISOString() }, ...store.get(DEMO_KEY, [])]);
-      return { id, schluessel };
-    }
-    return call("POST", "anzeigen", a);
-  },
-  async remove(id, schluessel) {
-    if (!LIVE) {
-      const before = store.get(DEMO_KEY, []);
-      const after = before.filter(x => x.id !== id);
-      store.set(DEMO_KEY, after);
-      return after.length < before.length;
-    }
-    try { await call("POST", `anzeigen/${encodeURIComponent(id)}/loeschen`, { schluessel }); return true; }
-    catch (e) { if (/nicht gefunden|passt nicht/.test(e.message)) return false; throw e; }
-  },
-  report(id) { return LIVE ? call("POST", `anzeigen/${encodeURIComponent(id)}/melden`) : Promise.resolve(); }
-};
 
 // ===== Tabs =====
-const VIEWS = ["finden", "anbieten", "meine"];
+const VIEWS = ["bestellen", "auftraege", "waescher", "meine"];
 function show(name) {
-  if (!VIEWS.includes(name)) name = "finden";
+  if (!VIEWS.includes(name)) name = "bestellen";
   for (const v of VIEWS) {
     $("view-" + v).hidden = v !== name;
     $("tab-" + v).setAttribute("aria-selected", String(v === name));
   }
-  if (name === "meine") renderMine();
+  if (name === "auftraege") loadBoard();
+  if (name === "waescher") renderWaescher();
+  if (name === "meine") renderOrders();
   try { history.replaceState(null, "", "#" + name); } catch {}
 }
 for (const v of VIEWS) $("tab-" + v).addEventListener("click", () => show(v));
@@ -398,260 +497,316 @@ document.addEventListener("click", e => {
   if (go) { show(go.dataset.go); window.scrollTo({ top: 0 }); }
 });
 
-// ===== Finden =====
-let alle = [];
-function fillSelect(sel, withAll) {
-  if (withAll) sel.append(el("option", { value: "", text: "Ganz Dortmund" }));
-  for (const s of STADTTEILE) sel.append(el("option", { value: s, text: s }));
+// ===== Selects =====
+$("oStadtteil").append(...STADTTEILE.map(s => el("option", { value: s, text: s })));
+$("fStadtteil").append(el("option", { value: "", text: "Ganz Dortmund" }), ...STADTTEILE.map(s => el("option", { value: s, text: s })));
+$("wStadtteile").append(...STADTTEILE.map((s, i) => el("label", { class: "check" }, el("input", { type: "checkbox", value: s, id: "wSt" + i }), s)));
+$("heroPreis").textContent = PREIS.standard.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+$("heroExpress").textContent = PREIS.express.toLocaleString("de-DE");
+$("heroMin").textContent = PREIS.minimum;
+$("earnM").textContent = eur(preisFuer("M", false));
+$("earnMonth").textContent = eur(Math.round(preisFuer("M", false) * 3 * 52 / 12 / 10) * 10);
+
+// ===== Bestellen =====
+const menge = () => document.querySelector('input[name="menge"]:checked').value;
+const express = () => document.querySelector('input[name="tempo"]:checked').value === "express";
+$("oTermin").min = tagPlus(0);
+$("oTermin").max = tagPlus(14);
+$("oTermin").value = tagPlus(1);
+
+function updateSummary() {
+  const m = menge(), x = express(), kg = MENGEN[m];
+  const roh = kg * (x ? PREIS.express : PREIS.standard);
+  const lines = [
+    [`${m} · ca. ${kg} kg × ${eur(x ? PREIS.express : PREIS.standard)}`, eur(roh)],
+    ["Abholen & Bringen", "inklusive"]
+  ];
+  if (roh < PREIS.minimum) lines.push(["Aufgerundet auf Mindestpreis", eur(PREIS.minimum)]);
+  $("sumLines").replaceChildren(...lines.map(([k, v]) => el("div", { class: "line" }, el("span", { text: k }), el("span", { text: v }))));
+  $("sumTotal").textContent = eur(preisFuer(m, x));
 }
-fillSelect($("fStadtteil"), true);
-fillSelect($("oStadtteil"), false);
+$("orderForm").addEventListener("change", updateSummary);
+updateSummary();
 
-function reportControl(id) {
-  const wrap = el("div", { class: "report" });
-  const ask = el("button", { class: "linkish", type: "button", text: "Anzeige melden" });
-  const yes = el("button", { class: "linkish", type: "button", text: "Ja, melden" });
-  const no = el("button", { class: "linkish", type: "button", text: "Abbrechen" });
-  const q = el("span", {}, "Fake oder unpassend? ", yes, " · ", no);
-  q.hidden = true;
-  ask.addEventListener("click", () => { ask.hidden = true; q.hidden = false; });
-  no.addEventListener("click", () => { ask.hidden = false; q.hidden = true; });
-  yes.addEventListener("click", async () => {
-    yes.disabled = true;
-    try { await api.report(id); wrap.replaceChildren("Danke. Nach mehreren Meldungen wird die Anzeige automatisch ausgeblendet."); }
-    catch { wrap.replaceChildren("Melden hat nicht geklappt. Bitte später noch einmal."); }
-  });
-  wrap.append(ask, q);
-  return wrap;
-}
-
-function card(a) {
-  const service = a.angebot === "service";
-  const typ = service ? "Waschen & Falten" : "Maschine nutzen";
-  const text = `Hallo ${a.name}, ich habe deine Anzeige bei Dortmund wäscht gesehen (${typ}, ${eur(a.preis)}). Wann hättest du Zeit?`;
-  const contact = a.vorschau
-    ? el("div", { class: "contact" },
-        el("span", { class: "btn btn-primary fake-btn", text: "Per WhatsApp anfragen" }),
-        el("p", { class: "num", text: "So sehen Kunden deine Anzeige." }))
-    : a.beispiel
-    ? el("div", { class: "contact" },
-        el("button", { class: "btn btn-sun", type: "button", "data-go": "anbieten", text: "Eigene Anzeige erstellen" }),
-        el("p", { class: "num", text: "Beispiel. So könnte deine Anzeige aussehen." }))
-    : el("div", { class: "contact" },
-        el("a", { class: "btn btn-primary", href: LIVE ? `/api/anzeigen/${encodeURIComponent(a.id)}/kontakt` : `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener nofollow" }, "Per WhatsApp anfragen"),
-        el("p", { class: "num", text: "Du landest direkt im WhatsApp-Chat." }),
-        reportControl(a.id));
-
-  return el("article", { class: "card" + (a.vorschau ? " preview" : "") },
-    el("div", { class: "top" },
-      el("div", {},
-        el("h3", { text: a.name }),
-        el("p", { class: "where", text: a.stadtteil })),
-      el("div", {},
-        el("p", { class: "price", text: eur(a.preis) }),
-        el("p", { class: "per", text: service ? "pro Ladung" : "pro Waschgang" }))),
-    el("div", { class: "chips" },
-      el("span", { class: "chip type", text: typ }),
-      a.trockner && el("span", { class: "chip", text: "Trockner" }),
-      a.abholung && el("span", { class: "chip", text: "Abholung" }),
-      a.beispiel && el("span", { class: "chip demo", text: "Beispiel" })),
-    a.beschreibung && el("p", { class: "desc", text: a.beschreibung }),
-    a.zeiten && el("p", { class: "times", text: "Zeiten: " + a.zeiten }),
-    contact);
-}
-
-function renderList() {
-  const st = $("fStadtteil").value, ang = $("fAngebot").value;
-  const tr = $("fTrockner").checked, ab = $("fAbholung").checked;
-  const passt = a => (!st || a.stadtteil === st) && (!ang || a.angebot === ang) && (!tr || a.trockner) && (!ab || a.abholung);
-  const sortiere = list => $("fSort").value === "preis"
-    ? [...list].sort((x, y) => x.preis - y.preis)
-    : [...list].sort((x, y) => (y.erstellt || "").localeCompare(x.erstellt || ""));
-  const echt = sortiere(alle.filter(passt));
-  const beispiele = alle.length < 6 ? sortiere(BEISPIELE.slice(0, alle.length < 3 ? 4 : 2).filter(passt)) : [];
-  $("grid").replaceChildren(...echt.map(card), ...beispiele.map(card));
-  $("empty").hidden = echt.length + beispiele.length > 0;
-  const start = alle.length === 0;
-  $("emptyTitle").textContent = start ? "Hier entstehen gerade die ersten Anzeigen" : "Hier gibt es noch keine Anzeige";
-  $("emptyText").textContent = start
-    ? "Dortmund wäscht ist neu. Hast du eine Waschmaschine? Dann bist du eine der ersten Personen hier und wirst von allen Besuchern gesehen."
-    : "Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.";
-  $("count").textContent = echt.length === 0 ? "Neu in Dortmund: Sei eine der ersten Personen mit Anzeige."
-    : echt.length === 1 ? "1 Anzeige" : `${echt.length} Anzeigen`;
-}
-for (const id of ["fStadtteil", "fAngebot", "fSort", "fTrockner", "fAbholung"]) $(id).addEventListener("change", renderList);
-
-async function load() {
-  try {
-    alle = (await api.list()).map(a => ({ ...a, preis: Number(a.preis) }));
-    renderList();
-  } catch (e) {
-    $("count").textContent = "Die Anzeigen konnten nicht geladen werden. Bitte lade die Seite neu.";
-    console.error(e);
-  }
-}
-
-// ===== Anbieten =====
-function syncPreisHint() {
-  $("preisHint").textContent = $("oService").checked ? "pro Ladung (inkl. Trocknen & Falten)" : "pro Waschgang";
-}
-$("oMaschine").addEventListener("change", syncPreisHint);
-$("oService").addEventListener("change", syncPreisHint);
-
-function renderPreview() {
-  const preis = parseFloat($("oPreis").value.replace(",", "."));
-  const service = $("oService").checked;
-  $("preview").replaceChildren(card({
-    vorschau: true,
-    name: $("oName").value.trim() || "Dein Vorname",
-    stadtteil: $("oStadtteil").value,
-    angebot: service ? "service" : "maschine",
-    preis: preis >= 1 && preis <= 100 ? preis : (service ? 18 : 5),
-    trockner: $("oTrockner").checked, abholung: $("oAbholung").checked,
-    zeiten: $("oZeiten").value.trim() || "Mo–Fr ab 17 Uhr",
-    beschreibung: $("oBeschreibung").value.trim() || "Hier steht deine kurze Beschreibung, z. B. wo die Maschine steht und was Kunden mitbringen sollen."
-  }));
-}
-$("offerForm").addEventListener("input", renderPreview);
-$("offerForm").addEventListener("change", renderPreview);
-$("offerForm").addEventListener("reset", () => setTimeout(renderPreview));
-renderPreview();
-
-$("offerForm").addEventListener("submit", async e => {
+$("orderForm").addEventListener("submit", async e => {
   e.preventDefault();
-  const name = $("oName").value.trim();
-  const preis = parseFloat($("oPreis").value.replace(",", "."));
-  const whatsapp = normalizePhone($("oWhatsapp").value);
-  const ok = $("oOk").checked;
+  const termin = $("oTermin").value;
+  const daten = {
+    vorname: $("oVorname").value.trim(), stadtteil: $("oStadtteil").value, menge: menge(), express: express(),
+    temperatur: $("oTemp").value, parfumfrei: $("oParfum").checked, termin, zeitfenster: $("oZeit").value,
+    hinweis: $("oHinweis").value.trim(), whatsapp: $("oWhatsapp").value, einverstanden: $("oOk").checked, website: $("oWebsite").value
+  };
   const checks = {
-    eName: name.length >= 2,
-    ePreis: preis >= 1 && preis <= 100,
-    eWhatsapp: !!whatsapp,
-    eOk: ok
+    eVorname: daten.vorname.length >= 2, eWhatsapp: !!normalizePhone(daten.whatsapp),
+    eTermin: termin >= tagPlus(0) && termin <= tagPlus(14), eOk: daten.einverstanden
   };
-  for (const [id, valid] of Object.entries(checks)) $(id).hidden = valid;
-  if (!Object.values(checks).every(Boolean)) {
-    $("oStatus").textContent = "Bitte prüfe die markierten Felder.";
-    return;
-  }
-  const anzeige = {
-    name, preis: Math.round(preis * 100) / 100, whatsapp,
-    stadtteil: $("oStadtteil").value,
-    angebot: $("oService").checked ? "service" : "maschine",
-    trockner: $("oTrockner").checked, abholung: $("oAbholung").checked,
-    zeiten: $("oZeiten").value.trim(), beschreibung: $("oBeschreibung").value.trim(),
-    einverstanden: ok, website: $("oWebsite").value
-  };
-  $("oSubmit").disabled = true;
-  $("oStatus").textContent = "Wird veröffentlicht …";
+  for (const [id, ok] of Object.entries(checks)) $(id).hidden = ok;
+  if (!Object.values(checks).every(Boolean)) { $("oStatus").textContent = "Bitte prüfe die markierten Felder."; return; }
+  if (!LIVE) { $("oStatus").textContent = "In der Vorschau kann nicht gebucht werden."; return; }
+  $("oSubmit").disabled = true; $("oStatus").textContent = "Wird gebucht …";
   try {
-    const { id, schluessel } = await api.create(anzeige);
-    delete anzeige.website;
-    const mine = store.get(MINE_KEY, []);
-    mine.unshift({ id, schluessel, name: anzeige.name, stadtteil: anzeige.stadtteil, preis: anzeige.preis, angebot: anzeige.angebot });
-    store.set(MINE_KEY, mine);
-    $("offerForm").reset(); syncPreisHint();
+    const { code } = await call("POST", "auftraege", daten);
+    store.set(ORDERS_KEY, [code, ...store.get(ORDERS_KEY, [])]);
+    $("orderForm").reset(); $("oTermin").value = tagPlus(1); updateSummary();
     $("oStatus").textContent = "";
-    showCreated(id, schluessel);
-    await load();
-    show("meine");
-    window.scrollTo({ top: 0 });
+    $("justCreated").replaceChildren(el("div", { class: "success" },
+      el("h3", { text: "Deine Abholung ist gebucht" }),
+      el("p", { text: "Sobald jemand aus deiner Nähe annimmt, siehst du es hier und kannst per WhatsApp schreiben. Speichere dir den Auftragscode, dann findest du den Auftrag auch auf einem anderen Gerät." }),
+      el("p", { class: "code", text: code }), copyButton(code)));
+    show("meine"); window.scrollTo({ top: 0 });
   } catch (err) {
-    console.error(err);
-    $("oStatus").textContent = err.message || "Das hat nicht geklappt. Bitte versuch es in einer Minute noch einmal.";
-  } finally {
-    $("oSubmit").disabled = false;
-  }
+    $("oStatus").textContent = err.message;
+  } finally { $("oSubmit").disabled = false; }
 });
 
-// ===== Meine Anzeige =====
-function showCreated(id, schluessel) {
-  const code = id + "~" + schluessel;
-  const copyBtn = el("button", { class: "btn btn-ghost", type: "button", text: "Code kopieren" });
-  const status = el("span", { class: "status" });
-  copyBtn.addEventListener("click", () => {
-    navigator.clipboard.writeText(code).then(
-      () => { status.textContent = "Kopiert."; },
-      () => { status.textContent = "Bitte den Code markieren und kopieren."; });
-  });
-  $("justCreated").replaceChildren(el("div", { class: "success" },
-    el("h3", { text: "Deine Anzeige ist online" }),
-    el("p", { text: "Speichere dir diesen Löschcode, zum Beispiel als Notiz im Handy. Damit kannst du die Anzeige jederzeit wieder entfernen." }),
-    el("p", { class: "code", text: code }),
-    el("div", { class: "row-actions" }, copyBtn, status)));
+// ===== Meine Aufträge =====
+const STATUS_TEXT = {
+  offen: "Offen: Wir suchen jemanden in deiner Nähe",
+  angenommen: "Angenommen",
+  erledigt: "Erledigt",
+  storniert: "Storniert",
+  abgelaufen: "Abgelaufen: Niemand hat angenommen"
+};
+function orderSummary(a) {
+  return `${fmtTag(a.termin)}, ${a.zeitfenster} · ${a.menge} (ca. ${a.kg} kg) · ${a.express ? "Express" : "Standard"} · ${a.temperatur}`;
 }
-
-function renderMine() {
-  const mine = store.get(MINE_KEY, []);
-  if (!mine.length) {
-    $("mineList").replaceChildren(el("div", { class: "empty" },
-      el("p", { class: "muted", text: "Auf diesem Gerät hast du noch keine Anzeige erstellt." }),
-      el("button", { class: "btn btn-primary", type: "button", "data-go": "anbieten", text: "Anzeige erstellen" })));
+async function renderOrders() {
+  const codes = store.get(ORDERS_KEY, []);
+  if (!codes.length) {
+    $("myOrders").replaceChildren(el("div", { class: "empty" },
+      el("p", { class: "muted", text: "Auf diesem Gerät hast du noch keinen Auftrag." }),
+      el("button", { class: "btn btn-primary", type: "button", "data-go": "bestellen", text: "Abholung buchen" })));
     return;
   }
-  $("mineList").replaceChildren(...mine.map(m => {
-    const status = el("span", { class: "status" });
-    const confirmRow = el("div", { class: "row-actions" });
-    confirmRow.hidden = true;
-    const del = el("button", { class: "btn btn-danger", type: "button", text: "Anzeige löschen" });
-    const yes = el("button", { class: "btn btn-danger", type: "button", text: "Ja, endgültig löschen" });
-    const no = el("button", { class: "btn btn-ghost", type: "button", text: "Abbrechen" });
-    confirmRow.append(el("span", { text: "Wirklich löschen?" }), yes, no);
-    del.addEventListener("click", () => { del.hidden = true; confirmRow.hidden = false; });
-    no.addEventListener("click", () => { del.hidden = false; confirmRow.hidden = true; });
+  if (!LIVE) return;
+  const cards = await Promise.all(codes.map(async code => {
+    const id = code.split("~")[0];
+    try {
+      const a = await call("POST", `auftraege/${id}/status`, { code });
+      return orderCard(a, code);
+    } catch (e) {
+      if (e.status === 404 || e.status === 403) {
+        store.set(ORDERS_KEY, store.get(ORDERS_KEY, []).filter(c => c !== code));
+        return null;
+      }
+      return el("div", { class: "card" }, el("p", { class: "muted", text: "Dieser Auftrag konnte gerade nicht geladen werden." }));
+    }
+  }));
+  $("myOrders").replaceChildren(...cards.filter(Boolean));
+}
+function orderCard(a, code) {
+  const id = a.id;
+  const actions = el("div", { class: "row-actions" });
+  const status = el("span", { class: "status" });
+  if (a.status === "angenommen") {
+    const wa = el("a", { class: "btn btn-ok", target: "_blank", rel: "noopener", href: "#", text: `${a.waescher?.name || "Wäscher"} per WhatsApp schreiben` });
+    wa.hidden = true;
+    call("POST", `auftraege/${id}/kontakt`, { code }).then(d => { wa.href = d.link; wa.hidden = false; }, () => {});
+    actions.append(wa);
+  }
+  if (a.status === "offen" || a.status === "angenommen") {
+    const cancel = el("button", { class: "btn btn-danger btn-sm", type: "button", text: "Stornieren" });
+    const yes = el("button", { class: "btn btn-danger btn-sm", type: "button", text: "Ja, stornieren" });
+    const no = el("button", { class: "btn btn-ghost btn-sm", type: "button", text: "Abbrechen" });
+    const confirm = el("span", { class: "row-actions" }, "Wirklich stornieren?", yes, no);
+    confirm.hidden = true;
+    cancel.addEventListener("click", () => { cancel.hidden = true; confirm.hidden = false; });
+    no.addEventListener("click", () => { cancel.hidden = false; confirm.hidden = true; });
     yes.addEventListener("click", async () => {
       yes.disabled = true;
-      try {
-        await api.remove(m.id, m.schluessel);
-        store.set(MINE_KEY, store.get(MINE_KEY, []).filter(x => x.id !== m.id));
-        $("justCreated").replaceChildren();
-        await load();
-        renderMine();
-      } catch (err) {
-        console.error(err);
-        status.textContent = "Löschen hat nicht geklappt. Bitte versuch es noch einmal.";
-        yes.disabled = false;
-      }
+      try { await call("POST", `auftraege/${id}/stornieren`, { code }); renderOrders(); }
+      catch (err) { status.textContent = err.message; yes.disabled = false; }
     });
-    return el("div", { class: "card" },
-      el("div", { class: "top" },
-        el("div", {}, el("h3", { text: m.name }), el("p", { class: "where", text: m.stadtteil })),
-        el("div", {}, el("p", { class: "price", text: eur(m.preis) }),
-          el("p", { class: "per", text: m.angebot === "service" ? "pro Ladung" : "pro Waschgang" }))),
-      el("p", { class: "muted", style: "font-size:.85rem" }, "Löschcode: ", el("span", { class: "code", style: "display:inline;padding:2px 6px", text: m.id + "~" + m.schluessel })),
-      el("div", { class: "row-actions" }, del, status),
-      confirmRow);
-  }));
+    actions.append(cancel, confirm);
+  } else {
+    const remove = el("button", { class: "btn btn-ghost btn-sm", type: "button", text: "Aus der Liste entfernen" });
+    remove.addEventListener("click", () => { store.set(ORDERS_KEY, store.get(ORDERS_KEY, []).filter(c => c !== code)); renderOrders(); });
+    actions.append(remove);
+  }
+  const statusText = a.status === "angenommen" ? `Angenommen von ${a.waescher?.name || "jemandem aus deiner Nähe"}` : STATUS_TEXT[a.status];
+  return el("article", { class: "card" },
+    el("div", { class: "top" },
+      el("div", {},
+        el("span", { class: "pill " + a.status, text: statusText }),
+        el("p", { class: "note", style: "margin-top:10px", text: orderSummary(a) })),
+      el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
+    a.status === "angenommen" && el("p", { class: "note", text: "Schick deiner Wäscherin oder deinem Wäscher per WhatsApp deine Adresse und klärt die Details." }),
+    el("div", { class: "foot" }, actions, status, el("p", { class: "note" }, "Auftragscode: ", el("span", { class: "code", style: "display:inline;padding:2px 6px", text: code }))));
+}
+$("codeBtn").addEventListener("click", async () => {
+  const code = $("codeInput").value.trim();
+  const id = code.split("~")[0];
+  if (!code.includes("~")) { $("codeStatus").textContent = "Bitte den kompletten Code einfügen."; return; }
+  try {
+    await call("POST", `auftraege/${id}/status`, { code });
+    const codes = store.get(ORDERS_KEY, []);
+    if (!codes.includes(code)) store.set(ORDERS_KEY, [code, ...codes]);
+    $("codeInput").value = ""; $("codeStatus").textContent = "";
+    renderOrders();
+  } catch (err) { $("codeStatus").textContent = err.message; }
+});
+
+// ===== Offene Aufträge =====
+const BEISPIELE = [
+  { id: "bsp-1", beispiel: true, stadtteil: "Kreuzviertel", menge: "M", kg: 8, express: false, temperatur: "40 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "18–20 Uhr", preis: preisFuer("M", false) },
+  { id: "bsp-2", beispiel: true, stadtteil: "Barop / Uni", menge: "L", kg: 12, express: false, temperatur: "Gemischt, bitte sortieren", parfumfrei: true, termin: tagPlus(2), zeitfenster: "16–18 Uhr", preis: preisFuer("L", false) },
+  { id: "bsp-3", beispiel: true, stadtteil: "Hörde", menge: "S", kg: 5, express: true, temperatur: "30 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "08–10 Uhr", preis: preisFuer("S", true) }
+];
+let offene = [];
+let boardLoading = null;
+function jobCard(a) {
+  const wcode = store.get(WCODE_KEY, null);
+  const status = el("span", { class: "status" });
+  let action;
+  if (a.beispiel) action = el("button", { class: "btn btn-sun", type: "button", "data-go": "waescher", text: "Wäscher werden" });
+  else if (!wcode) action = el("button", { class: "btn btn-primary", type: "button", "data-go": "waescher", text: "Anmelden und annehmen" });
+  else {
+    action = el("button", { class: "btn btn-primary", type: "button", text: "Auftrag annehmen" });
+    action.addEventListener("click", async () => {
+      action.disabled = true; status.textContent = "Wird angenommen …";
+      try {
+        await call("POST", `auftraege/${a.id}/annehmen`, { waescherCode: wcode });
+        show("waescher"); window.scrollTo({ top: 0 });
+      } catch (err) { status.textContent = err.message; action.disabled = false; loadBoard(); }
+    });
+  }
+  return el("article", { class: "card" },
+    el("div", { class: "top" },
+      el("div", {}, el("h3", { text: a.stadtteil }), el("p", { class: "where", text: `${fmtTag(a.termin)}, ${a.zeitfenster}` })),
+      el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "für dich, ca." }))),
+    el("div", { class: "chips" },
+      el("span", { class: "chip strong", text: `${a.menge} · ca. ${a.kg} kg` }),
+      a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
+      el("span", { class: "chip", text: a.temperatur }),
+      a.parfumfrei && el("span", { class: "chip", text: "Parfümfrei" }),
+      a.beispiel && el("span", { class: "chip demo", text: "Beispiel" })),
+    el("div", { class: "foot" }, action, status,
+      a.beispiel && el("p", { class: "note", text: "Beispiel. So sehen Aufträge aus." })));
+}
+function renderBoard() {
+  const st = $("fStadtteil").value;
+  const echt = offene.filter(a => !st || a.stadtteil === st);
+  const beispiele = offene.length < 3 ? BEISPIELE.filter(a => !st || a.stadtteil === st) : [];
+  $("board").replaceChildren(...echt.map(jobCard), ...beispiele.map(jobCard));
+  $("boardEmpty").hidden = echt.length + beispiele.length > 0;
+  $("count").textContent = echt.length === 0 ? "Gerade keine echten offenen Aufträge. Melde dich an, dann bist du dabei, sobald es losgeht."
+    : echt.length === 1 ? "1 offener Auftrag" : `${echt.length} offene Aufträge`;
+  $("boardCta").hidden = !!store.get(WCODE_KEY, null);
+}
+$("fStadtteil").addEventListener("change", renderBoard);
+async function loadBoard() {
+  if (!LIVE) { offene = []; renderBoard(); return; }
+  try {
+    boardLoading = boardLoading || call("GET", "auftraege");
+    offene = (await boardLoading).auftraege;
+    renderBoard();
+  } catch {
+    $("count").textContent = "Die Aufträge konnten nicht geladen werden. Bitte lade die Seite neu.";
+  } finally { boardLoading = null; }
 }
 
-$("codeDelete").addEventListener("click", async () => {
-  const [id, schluessel] = $("codeInput").value.trim().split("~");
-  if (!id || !schluessel) { $("codeStatus").textContent = "Der Code hat die Form xxx~yyy. Bitte komplett einfügen."; return; }
-  $("codeDelete").disabled = true;
+// ===== Für Wäscher =====
+$("wForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const daten = {
+    name: $("wName").value.trim(), whatsapp: $("wWhatsapp").value,
+    stadtteile: [...document.querySelectorAll("#wStadtteile input:checked")].map(i => i.value),
+    trockner: $("wTrockner").checked, auto: $("wAuto").checked, einverstanden: $("wOk").checked, website: $("wWebsite").value
+  };
+  const checks = { ewName: daten.name.length >= 2, ewWhatsapp: !!normalizePhone(daten.whatsapp), ewStadtteile: daten.stadtteile.length > 0, ewOk: daten.einverstanden };
+  for (const [id, ok] of Object.entries(checks)) $(id).hidden = ok;
+  if (!Object.values(checks).every(Boolean)) { $("wStatus").textContent = "Bitte prüfe die markierten Felder."; return; }
+  if (!LIVE) { $("wStatus").textContent = "In der Vorschau ist keine Anmeldung möglich."; return; }
+  $("wSubmit").disabled = true; $("wStatus").textContent = "Wird angemeldet …";
   try {
-    const removed = await api.remove(id, schluessel);
-    $("codeStatus").textContent = removed ? "Die Anzeige wurde gelöscht." : "Zu diesem Code gibt es keine Anzeige.";
-    if (removed) {
-      store.set(MINE_KEY, store.get(MINE_KEY, []).filter(x => x.id !== id));
-      $("codeInput").value = "";
-      await load(); renderMine();
-    }
-  } catch (err) {
-    console.error(err);
-    $("codeStatus").textContent = "Der Code ist ungültig oder es gab einen Fehler.";
-  } finally {
-    $("codeDelete").disabled = false;
+    const { code } = await call("POST", "waescher", daten);
+    store.set(WCODE_KEY, code);
+    $("wForm").reset(); $("wStatus").textContent = "";
+    $("wJustCreated").replaceChildren(el("div", { class: "success" },
+      el("h3", { text: "Du bist angemeldet" }),
+      el("p", { text: "Speichere dir deinen Wäscher-Code, zum Beispiel als Notiz im Handy. Damit meldest du dich auf anderen Geräten an." }),
+      el("p", { class: "code", text: code }), copyButton(code)));
+    renderWaescher(); window.scrollTo({ top: 0 });
+  } catch (err) { $("wStatus").textContent = err.message; }
+  finally { $("wSubmit").disabled = false; }
+});
+
+$("wCodeBtn").addEventListener("click", async () => {
+  const code = $("wCodeInput").value.trim();
+  try {
+    await call("POST", "waescher/ich", { code });
+    store.set(WCODE_KEY, code); $("wCodeInput").value = ""; $("wCodeStatus").textContent = "";
+    renderWaescher();
+  } catch (err) { $("wCodeStatus").textContent = err.status ? err.message : "In der Vorschau ist keine Anmeldung möglich."; }
+});
+
+async function renderWaescher() {
+  const code = store.get(WCODE_KEY, null);
+  $("wLoggedOut").hidden = !!code;
+  $("wLoggedIn").hidden = !code;
+  if (!code || !LIVE) return;
+  let me;
+  try { me = await call("POST", "waescher/ich", { code }); }
+  catch (err) {
+    if (err.status === 403) { store.del(WCODE_KEY); $("wJustCreated").replaceChildren(); renderWaescher(); }
+    return;
   }
+  $("wHello").textContent = `Hallo ${me.name}!`;
+  $("wInfo").textContent = `Du holst ab in: ${me.stadtteile.join(", ")}.`;
+  $("wCodeShow").textContent = code;
+  if (!me.auftraege.length) {
+    $("wJobs").replaceChildren(el("div", { class: "empty" },
+      el("p", { class: "muted", text: "Du hast gerade keinen Auftrag angenommen." }),
+      el("button", { class: "btn btn-primary", type: "button", "data-go": "auftraege", text: "Offene Aufträge ansehen" })));
+    return;
+  }
+  $("wJobs").replaceChildren(...me.auftraege.map(a => myJobCard(a, code)));
+}
+function myJobCard(a, wcode) {
+  const status = el("span", { class: "status" });
+  const wa = el("a", { class: "btn btn-ok", target: "_blank", rel: "noopener", href: "#", text: `${a.vorname} per WhatsApp schreiben` });
+  wa.hidden = true;
+  call("POST", `auftraege/${a.id}/kontakt`, { waescherCode: wcode }).then(d => { wa.href = d.link; wa.hidden = false; }, () => {});
+  const done = el("button", { class: "btn btn-primary btn-sm", type: "button", text: "Als erledigt markieren" });
+  const release = el("button", { class: "btn btn-ghost btn-sm", type: "button", text: "Zurückgeben" });
+  const act = (aktion, btn) => async () => {
+    btn.disabled = true;
+    try { await call("POST", `auftraege/${a.id}/${aktion}`, { waescherCode: wcode }); renderWaescher(); }
+    catch (err) { status.textContent = err.message; btn.disabled = false; }
+  };
+  done.addEventListener("click", act("erledigt", done));
+  release.addEventListener("click", act("freigeben", release));
+  return el("article", { class: "card" },
+    el("div", { class: "top" },
+      el("div", {}, el("h3", { text: `${a.vorname}, ${a.stadtteil}` }), el("p", { class: "where", text: `Abholung ${fmtTag(a.termin)}, ${a.zeitfenster}` })),
+      el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
+    el("div", { class: "chips" },
+      el("span", { class: "chip strong", text: `${a.menge} · ca. ${a.kg} kg` }),
+      a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
+      el("span", { class: "chip", text: a.temperatur }),
+      a.parfumfrei && el("span", { class: "chip", text: "Parfümfrei" })),
+    a.hinweis && el("p", { class: "note", text: "Hinweis: " + a.hinweis }),
+    el("div", { class: "foot" }, el("div", { class: "row-actions" }, wa, done, release), status,
+      el("p", { class: "note", text: "Schreib zuerst per WhatsApp, um die Adresse zu bekommen. Wiege die Wäsche bei der Abholung und rechne nach Gewicht ab." })));
+}
+$("wLogout").addEventListener("click", () => { store.del(WCODE_KEY); $("wJustCreated").replaceChildren(); renderWaescher(); });
+$("wDelete").addEventListener("click", () => { $("wDelete").hidden = true; $("wDeleteConfirm").hidden = false; });
+$("wDeleteNo").addEventListener("click", () => { $("wDelete").hidden = false; $("wDeleteConfirm").hidden = true; });
+$("wDeleteYes").addEventListener("click", async () => {
+  try {
+    await call("POST", "waescher/loeschen", { code: store.get(WCODE_KEY, "") });
+    store.del(WCODE_KEY); $("wJustCreated").replaceChildren();
+    $("wDelete").hidden = false; $("wDeleteConfirm").hidden = true;
+    renderWaescher();
+  } catch (err) { $("wProfileStatus").textContent = err.message; }
 });
 
 // ===== Start =====
-show((location.hash || "").slice(1));
 detectBackend().then(live => {
   LIVE = live;
   $("demoBanner").hidden = LIVE;
-  return load();
+  show((location.hash || "").slice(1));
 });
 </script>
-
 </body>
 </html>

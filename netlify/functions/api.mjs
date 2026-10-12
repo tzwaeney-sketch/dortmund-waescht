@@ -1,19 +1,30 @@
 import { getStore } from "@netlify/blobs";
 import { createHash, randomUUID } from "node:crypto";
 
-const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
-const ANZEIGEN_PRO_TAG = 5;        // pro Internetanschluss
-const MELDUNGEN_BIS_AUSBLENDEN = 3;
-const OEFFENTLICH = ["id", "erstellt", "name", "stadtteil", "angebot", "preis", "trockner", "abholung", "zeiten", "beschreibung"]; // WhatsApp-Nummer bleibt privat
-const KONTAKTE_PRO_TAG = 30;      // pro Internetanschluss, gegen das Absammeln von Nummern
+export const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
+export const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };          // kg
+export const PREIS = { standard: 2.5, express: 4, minimum: 15 }; // € pro kg, Mindestpreis
+const ZEITFENSTER = ["08–10 Uhr", "10–12 Uhr", "12–14 Uhr", "14–16 Uhr", "16–18 Uhr", "18–20 Uhr"];
+const TEMPERATUREN = ["30 °C", "40 °C", "60 °C", "Gemischt, bitte sortieren"];
+
+const AUFTRAEGE_PRO_TAG = 3;     // pro Internetanschluss
+const WAESCHER_PRO_TAG = 3;
+const AKTIVE_PRO_WAESCHER = 3;   // gleichzeitig angenommene Aufträge
+const LOESCHEN_NACH_TAGEN = 30;  // alte Aufträge werden danach gelöscht
 
 const json = (status, body) => new Response(JSON.stringify(body), {
-  status,
-  headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+  status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
 });
-const weiterleiten = to => new Response(null, { status: 302, headers: { location: to, "cache-control": "no-store", "x-robots-tag": "noindex" } });
 const sha = s => createHash("sha256").update(String(s)).digest("hex");
 const text = (v, max) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
+const heute = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); // JJJJ-MM-TT
+const tagePlus = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
+const neuerCode = () => randomUUID().replace(/-/g, "");
+
+export function preisFuer(menge, express) {
+  const kg = MENGEN[menge] || 0;
+  return Math.max(PREIS.minimum, kg * (express ? PREIS.express : PREIS.standard));
+}
 
 export function normalizePhone(raw) {
   let d = String(raw || "").replace(/[^\d+]/g, "");
@@ -24,126 +35,205 @@ export function normalizePhone(raw) {
   return /^\d{8,15}$/.test(d) ? d : null;
 }
 
-export function validate(b) {
-  if (!b || typeof b !== "object") return { error: "Ungültige Anfrage." };
-  if (b.website) return { error: "Ungültige Anfrage." }; // Spam-Falle
-  const name = text(b.name, 40);
-  if (name.length < 2) return { error: "Bitte gib deinen Vornamen an." };
-  if (!STADTTEILE.includes(b.stadtteil)) return { error: "Bitte wähle einen Stadtteil." };
-  if (b.angebot !== "maschine" && b.angebot !== "service") return { error: "Bitte wähle, was du anbietest." };
-  const preis = Math.round(Number(b.preis) * 100) / 100;
-  if (!(preis >= 1 && preis <= 100)) return { error: "Bitte einen Preis zwischen 1 und 100 € angeben." };
+export function validateAuftrag(b) {
+  if (!b || typeof b !== "object" || b.website) return { error: "Ungültige Anfrage." };
+  const vorname = text(b.vorname, 40);
+  if (vorname.length < 2) return { error: "Bitte gib deinen Vornamen an." };
+  if (!STADTTEILE.includes(b.stadtteil)) return { error: "Bitte wähle deinen Stadtteil." };
+  if (!(b.menge in MENGEN)) return { error: "Bitte wähle die Menge." };
+  if (!TEMPERATUREN.includes(b.temperatur)) return { error: "Bitte wähle die Temperatur." };
+  if (typeof b.termin !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.termin) || b.termin < heute() || b.termin > tagePlus(heute(), 14)) {
+    return { error: "Bitte wähle einen Abholtag in den nächsten 14 Tagen." };
+  }
+  if (!ZEITFENSTER.includes(b.zeitfenster)) return { error: "Bitte wähle ein Zeitfenster." };
   const whatsapp = normalizePhone(b.whatsapp);
   if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
+  const express = b.express === true;
   return {
-    anzeige: {
-      name, stadtteil: b.stadtteil, angebot: b.angebot, preis, whatsapp,
-      trockner: b.trockner === true, abholung: b.abholung === true,
-      zeiten: text(b.zeiten, 120), beschreibung: text(b.beschreibung, 400)
+    auftrag: {
+      vorname, stadtteil: b.stadtteil, menge: b.menge, kg: MENGEN[b.menge], express,
+      temperatur: b.temperatur, parfumfrei: b.parfumfrei === true,
+      termin: b.termin, zeitfenster: b.zeitfenster, hinweis: text(b.hinweis, 300), whatsapp,
+      preis: preisFuer(b.menge, express)
     }
   };
 }
 
-const publicView = a => Object.fromEntries(OEFFENTLICH.map(k => [k, a[k]]));
-const sichtbar = a => a && (a.meldungen || []).length < MELDUNGEN_BIS_AUSBLENDEN;
+export function validateWaescher(b) {
+  if (!b || typeof b !== "object" || b.website) return { error: "Ungültige Anfrage." };
+  const name = text(b.name, 40);
+  if (name.length < 2) return { error: "Bitte gib deinen Vornamen an." };
+  const stadtteile = Array.isArray(b.stadtteile) ? [...new Set(b.stadtteile.filter(s => STADTTEILE.includes(s)))] : [];
+  if (!stadtteile.length) return { error: "Bitte wähle mindestens einen Stadtteil." };
+  const whatsapp = normalizePhone(b.whatsapp);
+  if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
+  if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
+  return { waescher: { name, stadtteile, whatsapp, trockner: b.trockner === true, auto: b.auto === true } };
+}
+
+// Status, wie Kunden und Wäscher ihn sehen
+const effektiv = a => (a.status === "offen" && a.termin < heute() ? "abgelaufen" : a.status);
+const oeffentlich = a => ({
+  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, menge: a.menge, kg: a.kg, express: a.express,
+  temperatur: a.temperatur, parfumfrei: a.parfumfrei, termin: a.termin, zeitfenster: a.zeitfenster, preis: a.preis
+});
 
 async function readBody(req) {
   const raw = await req.text();
   if (raw.length > 5000) return null;
-  try { return JSON.parse(raw || "{}"); } catch { return null; }
+  try { const b = JSON.parse(raw || "{}"); return b && typeof b === "object" ? b : null; } catch { return null; }
 }
-
-async function alleAnzeigen(store) {
+async function alle(store) {
   const { blobs } = await store.list();
-  const items = await Promise.all(blobs.map(b => store.get(b.key, { type: "json" })));
-  return items.filter(Boolean);
+  return (await Promise.all(blobs.map(b => store.get(b.key, { type: "json" })))).filter(Boolean);
 }
+async function limit(zaehler, art, ip, max) {
+  const key = `${art}-${sha(ip + heute())}`;
+  const n = (await zaehler.get(key, { type: "json" }))?.n || 0;
+  if (n >= max) return false;
+  await zaehler.setJSON(key, { n: n + 1 });
+  return true;
+}
+function parseCode(code) {
+  if (typeof code !== "string") return null;
+  const [id, secret] = code.trim().split("~");
+  return /^[0-9a-f-]{36}$/.test(id || "") && secret ? { id, secret } : null;
+}
+async function waescherMitCode(store, code) {
+  const c = parseCode(code);
+  if (!c) return null;
+  const w = await store.get(c.id, { type: "json" });
+  return w && w.codeHash === sha(c.secret) ? w : null;
+}
+const waLink = (nummer, nachricht) => `https://wa.me/${nummer}?text=${encodeURIComponent(nachricht)}`;
+const datum = d => new Date(d + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
 
-export async function handle(req, ip, { anzeigen, zaehler }) {
+export async function handle(req, ip, { auftraege, waescher, zaehler }) {
   const url = new URL(req.url);
-  const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
-  const method = req.method;
+  const p = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
+  const m = req.method;
 
-  // GET /api/anzeigen
-  if (method === "GET" && parts.length === 1 && parts[0] === "anzeigen") {
-    const list = (await alleAnzeigen(anzeigen)).filter(sichtbar)
-      .sort((a, b) => b.erstellt.localeCompare(a.erstellt))
-      .map(publicView);
-    return json(200, { anzeigen: list });
+  // GET /api/auftraege – offene Aufträge, ohne persönliche Daten
+  if (m === "GET" && p.length === 1 && p[0] === "auftraege") {
+    const list = await alle(auftraege);
+    const grenze = tagePlus(heute(), -LOESCHEN_NACH_TAGEN);
+    await Promise.all(list.filter(a => a.termin < grenze).map(a => auftraege.delete(a.id))); // Datensparsamkeit
+    const offen = list.filter(a => effektiv(a) === "offen")
+      .sort((x, y) => (x.termin + x.zeitfenster).localeCompare(y.termin + y.zeitfenster))
+      .map(oeffentlich);
+    return json(200, { auftraege: offen });
   }
 
   // GET /api/statistik
-  if (method === "GET" && parts.length === 1 && parts[0] === "statistik") {
-    const all = await alleAnzeigen(anzeigen);
-    const live = all.filter(sichtbar);
+  if (m === "GET" && p.length === 1 && p[0] === "statistik") {
+    const list = await alle(auftraege);
+    const zaehle = s => list.filter(a => effektiv(a) === s).length;
     return json(200, {
-      anzeigen: live.length,
-      ausgeblendet: all.length - live.length,
-      anfragen: all.reduce((s, a) => s + (a.kontakte || 0), 0),
-      proStadtteil: Object.fromEntries(STADTTEILE.map(s => [s, live.filter(a => a.stadtteil === s).length]).filter(([, n]) => n))
+      waescher: (await waescher.list()).blobs.length,
+      auftraege: { offen: zaehle("offen"), angenommen: zaehle("angenommen"), erledigt: zaehle("erledigt"), storniert: zaehle("storniert"), abgelaufen: zaehle("abgelaufen") },
+      umsatzErledigt: list.filter(a => a.status === "erledigt").reduce((s, a) => s + a.preis, 0)
     });
   }
 
-  // GET /api/anzeigen/:id/kontakt -> Weiterleitung in den WhatsApp-Chat, die Nummer steht nie auf der Seite
-  if (method === "GET" && parts.length === 3 && parts[0] === "anzeigen" && parts[2] === "kontakt") {
-    const id = parts[1];
-    const a = /^[0-9a-f-]{36}$/.test(id) ? await anzeigen.get(id, { type: "json" }) : null;
-    if (!a || !sichtbar(a)) return weiterleiten("/#finden");
-    const tag = new Date().toISOString().slice(0, 10);
-    const limitKey = "kontakt-" + sha(ip + tag);
-    const count = (await zaehler.get(limitKey, { type: "json" }))?.n || 0;
-    if (count >= KONTAKTE_PRO_TAG) return new Response("Zu viele Anfragen heute. Bitte versuch es morgen wieder.", { status: 429, headers: { "content-type": "text/plain; charset=utf-8" } });
-    await zaehler.setJSON(limitKey, { n: count + 1 });
-    await anzeigen.setJSON(id, { ...a, kontakte: (a.kontakte || 0) + 1 });
-    const typ = a.angebot === "service" ? "Waschen & Falten" : "Maschine nutzen";
-    const preis = Number(a.preis).toLocaleString("de-DE", { minimumFractionDigits: a.preis % 1 ? 2 : 0 }) + " €";
-    const text = `Hallo ${a.name}, ich habe deine Anzeige bei Dortmund wäscht gesehen (${typ}, ${preis}). Wann hättest du Zeit?`;
-    return weiterleiten(`https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`);
-  }
+  if (m !== "POST") return json(405, { error: "Nicht erlaubt." });
+  const body = await readBody(req);
+  if (!body) return json(400, { error: "Ungültige Anfrage." });
 
-  if (method !== "POST") return json(405, { error: "Nicht erlaubt." });
-
-  // POST /api/anzeigen
-  if (parts.length === 1 && parts[0] === "anzeigen") {
-    const body = await readBody(req);
-    const { anzeige, error } = validate(body);
+  // POST /api/auftraege – Kunde gibt Auftrag auf
+  if (p.length === 1 && p[0] === "auftraege") {
+    const { auftrag, error } = validateAuftrag(body);
     if (error) return json(400, { error });
-
-    const tag = new Date().toISOString().slice(0, 10);
-    const limitKey = "limit-" + sha(ip + tag);
-    const count = (await zaehler.get(limitKey, { type: "json" }))?.n || 0;
-    if (count >= ANZEIGEN_PRO_TAG) return json(429, { error: "Du hast heute schon genug Anzeigen erstellt. Versuch es morgen wieder." });
-    await zaehler.setJSON(limitKey, { n: count + 1 });
-
-    const id = randomUUID();
-    const schluessel = randomUUID().replace(/-/g, "");
-    await anzeigen.setJSON(id, {
-      ...anzeige, id, erstellt: new Date().toISOString(),
-      schluesselHash: sha(schluessel), kontakte: 0, meldungen: []
-    });
-    return json(201, { id, schluessel });
+    if (!(await limit(zaehler, "auftrag", ip, AUFTRAEGE_PRO_TAG))) return json(429, { error: "Du hast heute schon genug Aufträge aufgegeben. Versuch es morgen wieder." });
+    const id = randomUUID(), secret = neuerCode();
+    await auftraege.setJSON(id, { ...auftrag, id, erstellt: new Date().toISOString(), status: "offen", codeHash: sha(secret), waescherId: null });
+    return json(201, { id, code: `${id}~${secret}`, preis: auftrag.preis });
   }
 
-  // POST /api/anzeigen/:id/(loeschen|kontakt|melden)
-  if (parts.length === 3 && parts[0] === "anzeigen") {
-    const [, id, aktion] = parts;
-    if (!/^[0-9a-f-]{36}$/.test(id)) return json(404, { error: "Anzeige nicht gefunden." });
-    const a = await anzeigen.get(id, { type: "json" });
-    if (!a) return json(404, { error: "Anzeige nicht gefunden." });
+  // POST /api/waescher – als Wäscher anmelden
+  if (p.length === 1 && p[0] === "waescher") {
+    const { waescher: w, error } = validateWaescher(body);
+    if (error) return json(400, { error });
+    if (!(await limit(zaehler, "waescher", ip, WAESCHER_PRO_TAG))) return json(429, { error: "Heute kamen schon genug Anmeldungen von diesem Anschluss. Versuch es morgen wieder." });
+    const id = randomUUID(), secret = neuerCode();
+    await waescher.setJSON(id, { ...w, id, erstellt: new Date().toISOString(), codeHash: sha(secret) });
+    return json(201, { id, code: `${id}~${secret}` });
+  }
 
-    if (aktion === "loeschen") {
-      const body = await readBody(req);
-      if (!body || typeof body.schluessel !== "string" || sha(body.schluessel) !== a.schluesselHash) {
-        return json(403, { error: "Der Löschcode passt nicht zu dieser Anzeige." });
-      }
-      await anzeigen.delete(id);
+  // POST /api/waescher/ich – eigenes Profil und angenommene Aufträge
+  if (p.length === 2 && p[0] === "waescher" && p[1] === "ich") {
+    const w = await waescherMitCode(waescher, body.code);
+    if (!w) return json(403, { error: "Dieser Wäscher-Code ist ungültig." });
+    const meine = (await alle(auftraege)).filter(a => a.waescherId === w.id && a.status === "angenommen")
+      .sort((x, y) => x.termin.localeCompare(y.termin))
+      .map(a => ({ ...oeffentlich(a), vorname: a.vorname, hinweis: a.hinweis, status: a.status }));
+    return json(200, { name: w.name, stadtteile: w.stadtteile, trockner: w.trockner, auto: w.auto, auftraege: meine });
+  }
+
+  // POST /api/waescher/loeschen – Profil löschen, angenommene Aufträge werden wieder frei
+  if (p.length === 2 && p[0] === "waescher" && p[1] === "loeschen") {
+    const w = await waescherMitCode(waescher, body.code);
+    if (!w) return json(403, { error: "Dieser Wäscher-Code ist ungültig." });
+    for (const a of await alle(auftraege)) {
+      if (a.waescherId === w.id && a.status === "angenommen") await auftraege.setJSON(a.id, { ...a, status: "offen", waescherId: null });
+    }
+    await waescher.delete(w.id);
+    return json(200, { ok: true });
+  }
+
+  // POST /api/auftraege/:id/<aktion>
+  if (p.length === 3 && p[0] === "auftraege") {
+    const [, id, aktion] = p;
+    const a = /^[0-9a-f-]{36}$/.test(id) ? await auftraege.get(id, { type: "json" }) : null;
+    if (!a) return json(404, { error: "Diesen Auftrag gibt es nicht mehr." });
+    const status = effektiv(a);
+    const kc = parseCode(body.code);
+    const istKunde = !!kc && kc.id === id && sha(kc.secret) === a.codeHash;
+
+    if (aktion === "status") {
+      if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
+      const w = a.waescherId ? await waescher.get(a.waescherId, { type: "json" }) : null;
+      return json(200, { ...oeffentlich(a), status, waescher: w ? { name: w.name } : null });
+    }
+    if (aktion === "stornieren") {
+      if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
+      if (status === "erledigt") return json(409, { error: "Dieser Auftrag ist schon erledigt." });
+      await auftraege.setJSON(id, { ...a, status: "storniert" });
       return json(200, { ok: true });
     }
-    if (aktion === "melden") {
-      const melder = sha("melden" + ip);
-      const meldungen = a.meldungen || [];
-      if (!meldungen.includes(melder)) await anzeigen.setJSON(id, { ...a, meldungen: [...meldungen, melder] });
+    // WhatsApp-Kontakt zur anderen Seite, erst nach Annahme
+    if (aktion === "kontakt") {
+      if (status !== "angenommen") return json(409, { error: "Der Kontakt ist erst möglich, wenn der Auftrag angenommen wurde." });
+      const w = await waescher.get(a.waescherId, { type: "json" });
+      if (!w) return json(409, { error: "Die Wäscherin oder der Wäscher ist nicht mehr angemeldet." });
+      if (istKunde) {
+        return json(200, { link: waLink(w.whatsapp, `Hallo ${w.name}, hier ist ${a.vorname}. Du hast meinen Auftrag bei Dortmund wäscht angenommen (${datum(a.termin)}, ${a.zeitfenster}).`) });
+      }
+      const ich = await waescherMitCode(waescher, body.waescherCode);
+      if (!ich || ich.id !== w.id) return json(403, { error: "Das ist nicht dein Auftrag." });
+      return json(200, { link: waLink(a.whatsapp, `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: Abholung ${datum(a.termin)}, ${a.zeitfenster}, ca. ${a.kg} kg. Schickst du mir noch deine Adresse?`) });
+    }
+
+    // Ab hier nur für angemeldete Wäscher
+    const w = await waescherMitCode(waescher, body.waescherCode);
+    if (!w) return json(403, { error: "Bitte melde dich zuerst als Wäscherin oder Wäscher an." });
+
+    if (aktion === "annehmen") {
+      if (status !== "offen") return json(409, { error: "Diesen Auftrag hat schon jemand anderes angenommen." });
+      const aktiv = (await alle(auftraege)).filter(x => x.waescherId === w.id && x.status === "angenommen").length;
+      if (aktiv >= AKTIVE_PRO_WAESCHER) return json(409, { error: `Du hast schon ${AKTIVE_PRO_WAESCHER} laufende Aufträge. Schließ erst einen ab.` });
+      await auftraege.setJSON(id, { ...a, status: "angenommen", waescherId: w.id, angenommen: new Date().toISOString() });
+      const check = await auftraege.get(id, { type: "json" });
+      if (check?.waescherId !== w.id) return json(409, { error: "Diesen Auftrag hat schon jemand anderes angenommen." });
+      return json(200, { ok: true });
+    }
+    if (a.waescherId !== w.id) return json(403, { error: "Das ist nicht dein Auftrag." });
+    if (aktion === "freigeben") {
+      await auftraege.setJSON(id, { ...a, status: "offen", waescherId: null });
+      return json(200, { ok: true });
+    }
+    if (aktion === "erledigt") {
+      await auftraege.setJSON(id, { ...a, status: "erledigt", erledigt: new Date().toISOString() });
       return json(200, { ok: true });
     }
   }
@@ -152,7 +242,8 @@ export async function handle(req, ip, { anzeigen, zaehler }) {
 }
 
 export default async (req, context) => handle(req, context.ip || "", {
-  anzeigen: getStore({ name: "anzeigen", consistency: "strong" }),
+  auftraege: getStore({ name: "auftraege", consistency: "strong" }),
+  waescher: getStore({ name: "waescher", consistency: "strong" }),
   zaehler: getStore({ name: "zaehler", consistency: "strong" })
 });
 

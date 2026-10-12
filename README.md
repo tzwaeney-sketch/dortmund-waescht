@@ -1,6 +1,6 @@
 # Dortmund wäscht
 
-Vermittlungs-Plattform für Waschmaschinen in Dortmund. Anbieter stellen ihre Maschine oder einen Wäsche-Service ein, Kunden finden sie und fragen per WhatsApp an.
+Wäsche-Service aus der Nachbarschaft in Dortmund. Kunden buchen eine Abholung, Wäscher aus dem Viertel nehmen den Auftrag an, waschen, falten und bringen zurück.
 
 ## Online stellen (einmalig, ca. 5 Minuten)
 
@@ -14,25 +14,23 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 
 ## Wie es läuft
 
-- Anbieter erstellen Anzeigen ohne Konto und bekommen einen Löschcode.
-- Kunden schreiben den Anbietern direkt per WhatsApp. Termine und Bezahlung laufen zwischen ihnen.
-- Pro Internetanschluss gehen höchstens 5 neue Anzeigen am Tag.
-- Wird eine Anzeige von 3 verschiedenen Leuten gemeldet, blendet die Seite sie automatisch aus.
+- Kunden buchen eine Abholung: Menge (S/M/L/XL), Standard oder Express, Tag und Uhrzeit. Preis: 2,50 €/kg, Express 4 €/kg, mindestens 15 €.
+- Wäscher melden sich einmal an und nehmen offene Aufträge an (höchstens 3 gleichzeitig).
+- Erst nach der Annahme bekommen beide per Knopfdruck den WhatsApp-Kontakt zueinander. Nummern sind nie öffentlich.
+- Bezahlt wird bei der Rückgabe direkt an den Wäscher. Die Plattform nimmt (noch) kein Geld.
+- Aufträge werden 30 Tage nach dem Abholtag automatisch gelöscht.
+- Spam-Schutz: höchstens 3 Aufträge und 3 Wäscher-Anmeldungen pro Internetanschluss und Tag.
 
 ## Zahlen ansehen
 
-`https://<deine-seite>.netlify.app/api/statistik` zeigt:
-- wie viele Anzeigen online sind,
-- wie viele ausgeblendet wurden,
-- wie oft Kunden auf „Per WhatsApp anfragen“ getippt haben,
-- wie viele Anzeigen es pro Stadtteil gibt.
+`https://dortmund-waescht.netlify.app/api/statistik` zeigt Wäscher, Aufträge nach Status und den Umsatz erledigter Aufträge.
 
-Einzelne Anzeigen siehst und löschst du in Netlify unter **Blobs** → `anzeigen`.
+Preise ändern: in `netlify/functions/api.mjs` (`PREIS`) und in `public/index.html` (`PREIS`) gleich setzen.
 
 ## Dateien
 
 - `public/index.html`: die Webseite
-- `netlify/functions/api.mjs`: der Server-Teil (Anzeigen speichern, löschen, melden)
+- `netlify/functions/api.mjs`: der Server-Teil (Aufträge, Wäscher, Kontakt)
 - `netlify.toml`, `package.json`: Einstellungen für Netlify
 
 ## Vor dem Start
