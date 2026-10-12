@@ -80,17 +80,13 @@ nav{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:.8rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--ink)}
 .chip.type{background:var(--ink);color:var(--bg)}
-.chip.demo{background:var(--sun);color:var(--sun-ink)}
+.chip.demo{background:transparent;color:var(--muted);border:1px solid var(--line)}
 .card .desc{font-size:.95rem;overflow-wrap:anywhere}
 .card .times{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
 .card .contact{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1.5px dashed var(--line)}
 .card .num{font-size:.85rem;color:var(--muted)}
 .card .num span{user-select:all;font-weight:600;color:var(--ink)}
 
-.examples{display:flex;flex-direction:column;gap:16px;margin-top:8px}
-.ex-head{display:flex;flex-direction:column;gap:6px;max-width:62ch}
-.ex-head h3{font-size:1.4rem}
-.card.example{border-style:dashed;background:transparent}
 .card.preview{box-shadow:0 18px 40px -28px rgba(20,33,58,.5)}
 .fake-btn{opacity:.55;pointer-events:none}
 .empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:14px;padding:32px 24px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
@@ -197,14 +193,6 @@ footer .legal a{color:var(--muted)}
       <button class="btn btn-primary" type="button" data-go="anbieten">Maschine anbieten</button>
     </div>
 
-    <div class="examples" id="examples" hidden>
-      <div class="ex-head">
-        <p class="eyebrow">Beispiele</p>
-        <h3>So könnte deine Anzeige aussehen</h3>
-        <p class="muted">Diese Anzeigen sind ausgedacht und nicht buchbar. Dortmund wäscht ist gerade gestartet. Trag dich als eine der Ersten ein, dann sehen dich alle Besucher ganz oben.</p>
-      </div>
-      <div class="grid" id="exGrid"></div>
-    </div>
   </section>
 
   <!-- ANBIETEN -->
@@ -448,13 +436,13 @@ function card(a) {
     : a.beispiel
     ? el("div", { class: "contact" },
         el("button", { class: "btn btn-sun", type: "button", "data-go": "anbieten", text: "Eigene Anzeige erstellen" }),
-        el("p", { class: "num", text: "Beispiel, nicht buchbar." }))
+        el("p", { class: "num", text: "Beispiel. So könnte deine Anzeige aussehen." }))
     : el("div", { class: "contact" },
         el("a", { class: "btn btn-primary", href: `https://wa.me/${a.whatsapp}?text=${encodeURIComponent(text)}`, target: "_blank", rel: "noopener", onclick: () => api.click(a.id) }, "Per WhatsApp anfragen"),
         el("p", { class: "num" }, "WhatsApp: ", el("span", { text: "+" + a.whatsapp })),
         reportControl(a.id));
 
-  return el("article", { class: "card" + (a.beispiel ? " example" : "") + (a.vorschau ? " preview" : "") },
+  return el("article", { class: "card" + (a.vorschau ? " preview" : "") },
     el("div", { class: "top" },
       el("div", {},
         el("h3", { text: a.name }),
@@ -475,21 +463,21 @@ function card(a) {
 function renderList() {
   const st = $("fStadtteil").value, ang = $("fAngebot").value;
   const tr = $("fTrockner").checked, ab = $("fAbholung").checked;
-  let list = alle.filter(a =>
-    (!st || a.stadtteil === st) && (!ang || a.angebot === ang) && (!tr || a.trockner) && (!ab || a.abholung));
-  if ($("fSort").value === "preis") list = [...list].sort((x, y) => x.preis - y.preis);
-  else list = [...list].sort((x, y) => (y.erstellt || "").localeCompare(x.erstellt || ""));
-  $("grid").replaceChildren(...list.map(card));
-  $("empty").hidden = list.length > 0;
+  const passt = a => (!st || a.stadtteil === st) && (!ang || a.angebot === ang) && (!tr || a.trockner) && (!ab || a.abholung);
+  const sortiere = list => $("fSort").value === "preis"
+    ? [...list].sort((x, y) => x.preis - y.preis)
+    : [...list].sort((x, y) => (y.erstellt || "").localeCompare(x.erstellt || ""));
+  const echt = sortiere(alle.filter(passt));
+  const beispiele = alle.length < 6 ? sortiere(BEISPIELE.slice(0, alle.length < 3 ? 4 : 2).filter(passt)) : [];
+  $("grid").replaceChildren(...echt.map(card), ...beispiele.map(card));
+  $("empty").hidden = echt.length + beispiele.length > 0;
   const start = alle.length === 0;
   $("emptyTitle").textContent = start ? "Hier entstehen gerade die ersten Anzeigen" : "Hier gibt es noch keine Anzeige";
   $("emptyText").textContent = start
     ? "Dortmund wäscht ist neu. Hast du eine Waschmaschine? Dann bist du eine der ersten Personen hier und wirst von allen Besuchern gesehen."
     : "Probier einen anderen Stadtteil. Oder hast du selbst eine Waschmaschine? Dann sei die erste Person hier.";
-  $("count").textContent = list.length === 1 ? "1 Anzeige" : `${list.length} Anzeigen`;
-  const showExamples = alle.length < 6;
-  $("examples").hidden = !showExamples;
-  if (showExamples) $("exGrid").replaceChildren(...BEISPIELE.slice(0, alle.length < 3 ? 4 : 2).map(card));
+  $("count").textContent = echt.length === 0 ? "Neu in Dortmund: Sei eine der ersten Personen mit Anzeige."
+    : echt.length === 1 ? "1 Anzeige" : `${echt.length} Anzeigen`;
 }
 for (const id of ["fStadtteil", "fAngebot", "fSort", "fTrockner", "fAbholung"]) $(id).addEventListener("change", renderList);
 
