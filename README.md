@@ -18,6 +18,7 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 - Wäscher melden sich einmal an und nehmen offene Aufträge an (höchstens 3 gleichzeitig).
 - Erst nach der Annahme bekommen beide per Knopfdruck den WhatsApp-Kontakt zueinander. Nummern sind nie öffentlich.
 - Bezahlt wird bei der Rückgabe direkt an den Wäscher. Die Plattform nimmt (noch) kein Geld.
+- Kunden bewerten ihren Wäscher mit 1–5 Sternen. Ab 3 Bewertungen mit Schnitt unter 3 Sternen kann der Wäscher keine neuen Aufträge annehmen. Kommentare sieht nur der Wäscher.
 - Aufträge werden 30 Tage nach dem Abholtag automatisch gelöscht.
 - Spam-Schutz: höchstens 3 Aufträge und 3 Wäscher-Anmeldungen pro Internetanschluss und Tag.
 

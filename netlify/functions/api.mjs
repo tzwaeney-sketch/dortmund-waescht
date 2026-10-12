@@ -11,6 +11,8 @@ const AUFTRAEGE_PRO_TAG = 3;     // pro Internetanschluss
 const WAESCHER_PRO_TAG = 3;
 const AKTIVE_PRO_WAESCHER = 3;   // gleichzeitig angenommene Aufträge
 const LOESCHEN_NACH_TAGEN = 30;  // alte Aufträge werden danach gelöscht
+const SPERRE_AB = { anzahl: 3, schnitt: 3 }; // ab 3 Bewertungen mit Schnitt unter 3 Sternen keine neuen Aufträge
+const FEEDBACK_MAX = 20;         // so viele Kommentare behält ein Wäscher-Profil
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
@@ -108,6 +110,11 @@ async function waescherMitCode(store, code) {
   const w = await store.get(c.id, { type: "json" });
   return w && w.codeHash === sha(c.secret) ? w : null;
 }
+// Bewertungen eines Wäschers: { summe, anzahl } für den Schnitt
+const schnitt = w => (w?.bewertungen?.anzahl ? Math.round(w.bewertungen.summe / w.bewertungen.anzahl * 10) / 10 : null);
+const gesperrt = w => (w?.bewertungen?.anzahl || 0) >= SPERRE_AB.anzahl && schnitt(w) < SPERRE_AB.schnitt;
+const kannBewerten = (a, status) => !a.bewertung && a.waescherId && (status === "erledigt" || (status === "angenommen" && a.termin <= heute()));
+
 const waLink = (nummer, nachricht) => `https://wa.me/${nummer}?text=${encodeURIComponent(nachricht)}`;
 const datum = d => new Date(d + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Berlin" });
 
@@ -125,6 +132,14 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
       .sort((x, y) => (x.termin + x.zeitfenster).localeCompare(y.termin + y.zeitfenster))
       .map(oeffentlich);
     return json(200, { auftraege: offen });
+  }
+
+  // GET /api/bewertungen – Gesamtschnitt für die Startseite
+  if (m === "GET" && p.length === 1 && p[0] === "bewertungen") {
+    const ws = await alle(waescher);
+    const summe = ws.reduce((x, w) => x + (w.bewertungen?.summe || 0), 0);
+    const anzahl = ws.reduce((x, w) => x + (w.bewertungen?.anzahl || 0), 0);
+    return json(200, { anzahl, schnitt: anzahl ? Math.round(summe / anzahl * 10) / 10 : null });
   }
 
   // GET /api/statistik
@@ -169,7 +184,10 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     const meine = (await alle(auftraege)).filter(a => a.waescherId === w.id && a.status === "angenommen")
       .sort((x, y) => x.termin.localeCompare(y.termin))
       .map(a => ({ ...oeffentlich(a), vorname: a.vorname, hinweis: a.hinweis, status: a.status }));
-    return json(200, { name: w.name, stadtteile: w.stadtteile, trockner: w.trockner, auto: w.auto, auftraege: meine });
+    return json(200, {
+      name: w.name, stadtteile: w.stadtteile, trockner: w.trockner, auto: w.auto, auftraege: meine,
+      sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0, gesperrt: gesperrt(w), feedback: w.feedback || []
+    });
   }
 
   // POST /api/waescher/loeschen – Profil löschen, angenommene Aufträge werden wieder frei
@@ -195,7 +213,27 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     if (aktion === "status") {
       if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
       const w = a.waescherId ? await waescher.get(a.waescherId, { type: "json" }) : null;
-      return json(200, { ...oeffentlich(a), status, waescher: w ? { name: w.name } : null });
+      return json(200, {
+        ...oeffentlich(a), status, bewertung: a.bewertung ? { sterne: a.bewertung.sterne } : null, kannBewerten: kannBewerten(a, status),
+        waescher: w ? { name: w.name, sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0 } : null
+      });
+    }
+    // Kunde bewertet den Wäscher, einmal pro Auftrag
+    if (aktion === "bewerten") {
+      if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
+      if (!kannBewerten(a, status)) return json(409, { error: a.bewertung ? "Du hast diesen Auftrag schon bewertet." : "Bewerten geht erst nach dem Termin." });
+      const sterne = Number(body.sterne);
+      if (!Number.isInteger(sterne) || sterne < 1 || sterne > 5) return json(400, { error: "Bitte wähle 1 bis 5 Sterne." });
+      const kommentar = text(body.kommentar, 300);
+      const bewertung = { sterne, kommentar, datum: heute() };
+      await auftraege.setJSON(id, { ...a, status: "erledigt", erledigt: a.erledigt || new Date().toISOString(), bewertung });
+      const w = await waescher.get(a.waescherId, { type: "json" });
+      if (w) {
+        const b = w.bewertungen || { summe: 0, anzahl: 0 };
+        const feedback = [{ sterne, kommentar, datum: bewertung.datum }, ...(w.feedback || [])].slice(0, FEEDBACK_MAX);
+        await waescher.setJSON(w.id, { ...w, bewertungen: { summe: b.summe + sterne, anzahl: b.anzahl + 1 }, feedback });
+      }
+      return json(200, { ok: true });
     }
     if (aktion === "stornieren") {
       if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
@@ -224,6 +262,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     if (!w) return json(403, { error: "Bitte melde dich zuerst als Wäscherin oder Wäscher an." });
 
     if (aktion === "annehmen") {
+      if (gesperrt(w)) return json(403, { error: "Wegen zu vieler schlechter Bewertungen kannst du gerade keine neuen Aufträge annehmen. Schreib uns, wenn du Fragen hast." });
       if (status !== "offen") return json(409, { error: "Diesen Auftrag hat schon jemand anderes angenommen." });
       const aktiv = (await alle(auftraege)).filter(x => x.waescherId === w.id && x.status === "angenommen").length;
       if (aktiv >= AKTIVE_PRO_WAESCHER) return json(409, { error: `Du hast schon ${AKTIVE_PRO_WAESCHER} laufende Aufträge. Schließ erst einen ab.` });
