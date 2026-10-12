@@ -20,6 +20,10 @@ const FINDEN_PRO_TAG = 20;       // Auftragssuchen pro Internetanschluss
 const SITZUNGEN_MAX = 10;        // gleichzeitig angemeldete Geräte
 const KURZ_ZEICHEN = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const ABOS_PRO_TAG = 10;         // Push-Anmeldungen pro Internetanschluss
+// Einmal-Code zum ersten Einrichten der Admin-Seite (nur der Hash steht hier, der Code selbst nicht)
+const ADMIN_SETUP_HASH = "cab63a29b99f68d237db2c7e71255f801086687ebf80d863d8c68d94b23fc8f8";
+const ADMIN_FEHLER_MAX = 5;      // falsche Admin-Passwörter pro Stunde
+const QUELLEN = ["tiktok", "instagram", "facebook", "whatsapp", "google", "direkt", "andere"];
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
@@ -139,7 +143,8 @@ async function waescherMitCode(store, code) {
 }
 // Bewertungen eines Wäschers: { summe, anzahl } für den Schnitt
 const schnitt = w => (w?.bewertungen?.anzahl ? Math.round(w.bewertungen.summe / w.bewertungen.anzahl * 10) / 10 : null);
-const gesperrt = w => (w?.bewertungen?.anzahl || 0) >= SPERRE_AB.anzahl && schnitt(w) < SPERRE_AB.schnitt;
+const gesperrtWegenBewertung = w => (w?.bewertungen?.anzahl || 0) >= SPERRE_AB.anzahl && schnitt(w) < SPERRE_AB.schnitt;
+const gesperrt = w => !!w?.gesperrtManuell || gesperrtWegenBewertung(w);
 const kannBewerten = (a, status) => !a.bewertung && a.waescherId && (status === "erledigt" || (status === "angenommen" && a.termin <= heute()));
 
 const waLink = (nummer, nachricht) => `https://wa.me/${nummer}?text=${encodeURIComponent(nachricht)}`;
@@ -205,6 +210,11 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
     return json(200, { publicKey: (await vapidSchluessel(zaehler)).publicKey });
   }
 
+  // GET /api/admin/status – ist die Admin-Seite schon eingerichtet?
+  if (m === "GET" && p.length === 2 && p[0] === "admin" && p[1] === "status") {
+    return json(200, { eingerichtet: !!(await zaehler.get("admin", { type: "json" }))?.passwortHash });
+  }
+
   // GET /api/statistik
   if (m === "GET" && p.length === 1 && p[0] === "statistik") {
     const list = await alle(auftraege);
@@ -220,6 +230,101 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
   if (m !== "POST") return json(405, { error: "Nicht erlaubt." });
   const body = await readBody(req);
   if (!body) return json(400, { error: "Ungültige Anfrage." });
+
+  // POST /api/besuch – anonymer Seitenaufruf-Zähler (keine Cookies, keine IP, nur Tag und Quelle)
+  if (p.length === 1 && p[0] === "besuch") {
+    const quelle = QUELLEN.includes(body.quelle) ? body.quelle : "andere";
+    const key = "besuche-" + heute();
+    const t = (await zaehler.get(key, { type: "json" })) || { gesamt: 0, quellen: {} };
+    t.gesamt += 1; t.quellen[quelle] = (t.quellen[quelle] || 0) + 1;
+    await zaehler.setJSON(key, t);
+    return json(200, { ok: true });
+  }
+
+  // ===== Admin =====
+  if (p[0] === "admin") {
+    const admin = (await zaehler.get("admin", { type: "json" })) || {};
+    if (p[1] === "einrichten") {
+      if (admin.passwortHash) return json(409, { error: "Die Admin-Seite ist schon eingerichtet. Melde dich mit deinem Passwort an." });
+      if (typeof body.code !== "string" || sha(body.code.trim().toUpperCase()) !== ADMIN_SETUP_HASH) return json(403, { error: "Der Einrichtungscode stimmt nicht." });
+      if (typeof body.passwort !== "string" || body.passwort.length < 8) return json(400, { error: "Bitte wähle ein Passwort mit mindestens 8 Zeichen." });
+      const secret = neuerCode();
+      await zaehler.setJSON("admin", mitSitzung({ passwortHash: passwortHash(body.passwort) }, secret));
+      return json(200, { sitzung: secret });
+    }
+    if (p[1] === "login") {
+      const fehlerKey = "adminfehler-" + new Date().toISOString().slice(0, 13);
+      const fehler = (await zaehler.get(fehlerKey, { type: "json" }))?.n || 0;
+      if (fehler >= ADMIN_FEHLER_MAX) return json(429, { error: "Zu viele falsche Versuche. Bitte warte eine Stunde." });
+      if (!passwortOk(body.passwort, admin.passwortHash)) {
+        await zaehler.setJSON(fehlerKey, { n: fehler + 1 });
+        return json(403, { error: "Das Passwort stimmt nicht." });
+      }
+      const secret = neuerCode();
+      await zaehler.setJSON("admin", mitSitzung(admin, secret));
+      return json(200, { sitzung: secret });
+    }
+    // Ab hier nur mit gültiger Admin-Sitzung
+    if (typeof body.sitzung !== "string" || !admin.passwortHash || !(admin.sitzungen || []).includes(sha(body.sitzung))) {
+      return json(401, { error: "Bitte melde dich neu an." });
+    }
+    if (p[1] === "daten") {
+      const [auftragsListe, waescherListe, aboListe] = await Promise.all([alle(auftraege), alle(waescher), alle(abos)]);
+      const namen = Object.fromEntries(waescherListe.map(w => [w.id, w.name]));
+      const besuche = [];
+      for (let i = 29; i >= 0; i--) {
+        const tag = tagePlus(heute(), -i);
+        const t = await zaehler.get("besuche-" + tag, { type: "json" });
+        besuche.push({ tag, gesamt: t?.gesamt || 0, quellen: t?.quellen || {} });
+      }
+      const aboProStadtteil = {};
+      for (const a of aboListe) for (const st of a.stadtteile) aboProStadtteil[st] = (aboProStadtteil[st] || 0) + 1;
+      return json(200, {
+        heute: heute(), besuche, abos: aboListe.length, aboProStadtteil,
+        auftraege: auftragsListe.sort((x, y) => y.erstellt.localeCompare(x.erstellt)).map(a => ({
+          id: a.id, kurz: a.kurz, erstellt: a.erstellt, status: effektiv(a), vorname: a.vorname, whatsapp: a.whatsapp,
+          stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport, termin: a.termin, zeitfenster: a.zeitfenster,
+          temperatur: a.temperatur, hinweis: a.hinweis, preis: a.preis, waescher: a.waescherId ? (namen[a.waescherId] || "gelöscht") : null,
+          bewertung: a.bewertung || null
+        })),
+        waescher: waescherListe.sort((x, y) => y.erstellt.localeCompare(x.erstellt)).map(w => ({
+          id: w.id, name: w.name, whatsapp: w.whatsapp, stadtteile: w.stadtteile, erstellt: w.erstellt, trockner: w.trockner, auto: w.auto,
+          sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0, gesperrt: gesperrt(w), gesperrtManuell: !!w.gesperrtManuell,
+          aktiv: auftragsListe.filter(a => a.waescherId === w.id && a.status === "angenommen").length,
+          erledigt: auftragsListe.filter(a => a.waescherId === w.id && a.status === "erledigt").length
+        }))
+      });
+    }
+    if (p[1] === "aktion") {
+      const { art, id } = body;
+      if (typeof id !== "string" || !/^[0-9a-f-]{36}$/.test(id)) return json(400, { error: "Ungültige Anfrage." });
+      if (art === "auftrag-stornieren" || art === "auftrag-loeschen") {
+        const a = await auftraege.get(id, { type: "json" });
+        if (!a) return json(404, { error: "Diesen Auftrag gibt es nicht mehr." });
+        if (art === "auftrag-loeschen") await auftraege.delete(id);
+        else await auftraege.setJSON(id, { ...a, status: "storniert" });
+        return json(200, { ok: true });
+      }
+      if (art === "waescher-sperren" || art === "waescher-entsperren" || art === "waescher-loeschen") {
+        const w = await waescher.get(id, { type: "json" });
+        if (!w) return json(404, { error: "Diesen Wäscher gibt es nicht mehr." });
+        if (art === "waescher-loeschen") {
+          for (const a of await alle(auftraege)) if (a.waescherId === id && a.status === "angenommen") await auftraege.setJSON(a.id, { ...a, status: "offen", waescherId: null });
+          await waescher.delete(id);
+          await zaehler.delete("login-" + sha(w.whatsapp));
+        } else {
+          await waescher.setJSON(id, { ...w, gesperrtManuell: art === "waescher-sperren" });
+        }
+        return json(200, { ok: true });
+      }
+      return json(400, { error: "Unbekannte Aktion." });
+    }
+    if (p[1] === "abmelden") {
+      await zaehler.setJSON("admin", { ...admin, sitzungen: (admin.sitzungen || []).filter(h => h !== sha(body.sitzung)) });
+      return json(200, { ok: true });
+    }
+    return json(404, { error: "Nicht gefunden." });
+  }
 
   // POST /api/push/abo – Benachrichtigungen für Stadtteile anmelden oder ändern
   if (p.length === 2 && p[0] === "push" && p[1] === "abo") {
@@ -401,7 +506,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
     if (!w) return json(403, { error: "Bitte melde dich zuerst als Wäscherin oder Wäscher an." });
 
     if (aktion === "annehmen") {
-      if (gesperrt(w)) return json(403, { error: "Wegen zu vieler schlechter Bewertungen kannst du gerade keine neuen Aufträge annehmen. Schreib uns, wenn du Fragen hast." });
+      if (gesperrt(w)) return json(403, { error: w.gesperrtManuell ? "Dein Profil ist gerade gesperrt. Schreib uns, wenn du Fragen hast." : "Wegen zu vieler schlechter Bewertungen kannst du gerade keine neuen Aufträge annehmen. Schreib uns, wenn du Fragen hast." });
       if (status !== "offen") return json(409, { error: "Diesen Auftrag hat schon jemand anderes angenommen." });
       const aktiv = (await alle(auftraege)).filter(x => x.waescherId === w.id && x.status === "angenommen").length;
       if (aktiv >= AKTIVE_PRO_WAESCHER) return json(409, { error: `Du hast schon ${AKTIVE_PRO_WAESCHER} laufende Aufträge. Schließ erst einen ab.` });

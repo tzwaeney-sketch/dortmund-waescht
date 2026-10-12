@@ -25,9 +25,13 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 - Aufträge werden 30 Tage nach dem Abholtag automatisch gelöscht.
 - Spam-Schutz: höchstens 3 Aufträge und 3 Wäscher-Anmeldungen pro Internetanschluss und Tag.
 
-## Zahlen ansehen
+## Admin-Seite
 
-`https://dortmund-waescht.netlify.app/api/statistik` zeigt Wäscher, Aufträge nach Status und den Umsatz erledigter Aufträge.
+`https://dortmund-waescht.netlify.app/admin.html` zeigt alles auf einen Blick: Besucher pro Tag und Herkunft, Aufträge, Wäscher, Umsatz, Fortschritt zum Monatsziel und was gerade Aufmerksamkeit braucht. Aufträge lassen sich dort stornieren oder löschen, Wäscher sperren oder löschen.
+
+Beim ersten Öffnen braucht es einmalig den Einrichtungscode, danach nur noch das Admin-Passwort. Nach 5 falschen Passwörtern ist die Anmeldung eine Stunde gesperrt.
+
+Besucher werden anonym gezählt (nur Tag und Quelle, keine Cookies, keine IP). Mit `?q=tiktok` im Link wird die Quelle sicher erkannt.
 
 Preise ändern: in `netlify/functions/api.mjs` (`PREIS`) und in `public/index.html` (`PREIS`) gleich setzen.
 

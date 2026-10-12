@@ -1162,8 +1162,20 @@ async function loadRating() {
 }
 
 // ===== Start =====
+// Anonymer Besuchszähler: nur Tag und Herkunft (z. B. TikTok), keine Cookies, keine IP
+function besuchZaehlen() {
+  let ref = "";
+  try { ref = document.referrer ? new URL(document.referrer).hostname : ""; } catch {}
+  if (ref === location.hostname) return; // Rückkehr von Impressum & Co. nicht doppelt zählen
+  const q = (new URLSearchParams(location.search).get("q") || "").toLowerCase();
+  const quellen = { tiktok: /tiktok/, instagram: /instagram/, facebook: /facebook|fb\./, whatsapp: /whatsapp|wa\.me/, google: /google/ };
+  let quelle = quellen[q] ? q : ref ? (Object.keys(quellen).find(k => quellen[k].test(ref)) || "andere") : "direkt";
+  fetch("/api/besuch", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ quelle }), keepalive: true }).catch(() => {});
+}
+
 detectBackend().then(live => {
   LIVE = live;
+  if (LIVE) besuchZaehlen();
   $("demoBanner").hidden = LIVE;
   show((location.hash || "").slice(1));
   loadRating();
