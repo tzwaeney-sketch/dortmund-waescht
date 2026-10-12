@@ -153,6 +153,13 @@ input[type=checkbox]{width:20px;height:20px;margin-top:2px;flex:none;accent-colo
 .feedback{display:flex;flex-direction:column;gap:10px}
 .feedback li{list-style:none;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .feedback ul{margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.fake-btn{opacity:.6;pointer-events:none}
+.trust{display:grid;grid-template-columns:1.2fr .9fr;gap:28px;align-items:center}
+.trust>*{min-width:0}
+@media (max-width:860px){ .trust{grid-template-columns:1fr} }
+.login{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:720px}
+.login .full{grid-column:1/-1}
+.kurz{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.12em}
 .success{border:1.5px solid var(--ok);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
 .success h3{color:var(--ok)}
 
@@ -167,7 +174,8 @@ footer .legal a{color:var(--muted)}
   .steps{grid-template-columns:1fr}
   .summary{position:static}
 }
-@media (max-width:560px){ form{grid-template-columns:1fr;padding:18px} .sizes{grid-template-columns:1fr 1fr} .choice{grid-template-columns:1fr} }
+input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
+@media (max-width:560px){ form,.login{grid-template-columns:1fr;padding:18px} .sizes{grid-template-columns:1fr 1fr} .choice{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
 </head>
@@ -214,6 +222,15 @@ footer .legal a{color:var(--muted)}
       <div class="step"><span class="n">1</span><h3>Auftrag aufgeben</h3><p>Menge, Tag und Uhrzeit wählen. Das dauert eine Minute.</p></div>
       <div class="step"><span class="n">2</span><h3>Der Wäscher holt ab</h3><p>Eine Wäscherin oder ein Wäscher aus deiner Nähe nimmt an, meldet sich per WhatsApp und holt die Wäsche bei dir ab.</p></div>
       <div class="step"><span class="n">3</span><h3>Frisch zurück</h3><p>Gewaschen, getrocknet, gefaltet und zu dir gebracht. Du bezahlst bei der Rückgabe, bar oder per PayPal.</p></div>
+    </div>
+
+    <div class="trust">
+      <div class="head" style="gap:8px">
+        <p class="eyebrow">Du weißt, wer wäscht</p>
+        <h3 style="font-size:1.4rem">Bewertungen von anderen Kunden</h3>
+        <p class="muted">Sobald jemand deinen Auftrag annimmt, siehst du Vornamen und Bewertungen. Nach dem Auftrag bewertest du selbst. Wer schlecht bewertet wird, bekommt keine neuen Aufträge mehr.</p>
+      </div>
+      <div id="exampleAccepted"></div>
     </div>
 
     <div class="formwrap" id="bestellformular">
@@ -323,8 +340,25 @@ footer .legal a{color:var(--muted)}
       <div class="head">
         <p class="eyebrow">Für Wäscher</p>
         <h2>Wasch für Nachbarn und verdien nebenbei Geld</h2>
-        <p class="muted">Kostenlos anmelden, Aufträge in deinem Viertel annehmen, waschen, falten, zurückbringen. Du entscheidest selbst, wann und wie viel.</p>
+        <p class="muted">Kostenlos registrieren, Aufträge in deinem Viertel annehmen, waschen, falten, zurückbringen. Du entscheidest selbst, wann und wie viel.</p>
       </div>
+      <form id="loginForm" class="login" novalidate>
+        <p class="lbl full" style="grid-column:1/-1">Schon registriert? Hier anmelden</p>
+        <div class="field">
+          <label for="lWhatsapp">WhatsApp-Nummer</label>
+          <input type="tel" id="lWhatsapp" autocomplete="username" placeholder="0176 12345678">
+        </div>
+        <div class="field">
+          <label for="lPasswort">Passwort</label>
+          <input type="password" id="lPasswort" autocomplete="current-password">
+        </div>
+        <div class="field full row-actions">
+          <button class="btn btn-primary" type="submit" id="lSubmit">Anmelden</button>
+          <span class="status" id="lStatus" aria-live="polite"></span>
+        </div>
+        <p class="hint full" style="grid-column:1/-1">Passwort vergessen? Schreib an <a href="mailto:albrecht.sven89@gmail.com">albrecht.sven89@gmail.com</a>.</p>
+      </form>
+      <p class="eyebrow">Neu hier? Kostenlos registrieren</p>
       <div class="formwrap">
         <form id="wForm" novalidate>
           <div class="field">
@@ -336,6 +370,11 @@ footer .legal a{color:var(--muted)}
             <label for="wWhatsapp">WhatsApp-Nummer <span class="hint">nicht öffentlich</span></label>
             <input type="tel" id="wWhatsapp" autocomplete="tel" placeholder="0176 12345678">
             <span class="err" id="ewWhatsapp" hidden>Diese Nummer sieht nicht richtig aus.</span>
+          </div>
+          <div class="field full">
+            <label for="wPasswort">Passwort <span class="hint">mindestens 6 Zeichen, damit meldest du dich später an</span></label>
+            <input type="password" id="wPasswort" autocomplete="new-password" minlength="6">
+            <span class="err" id="ewPasswort" hidden>Bitte wähle ein Passwort mit mindestens 6 Zeichen.</span>
           </div>
           <div class="field full">
             <span class="lbl" id="wStLbl">In welchen Stadtteilen holst du ab?</span>
@@ -352,7 +391,7 @@ footer .legal a{color:var(--muted)}
           </div>
           <div class="hp" aria-hidden="true"><label for="wWebsite">Website</label><input type="text" id="wWebsite" tabindex="-1" autocomplete="off"></div>
           <div class="field full row-actions">
-            <button class="btn btn-primary" type="submit" id="wSubmit">Kostenlos anmelden</button>
+            <button class="btn btn-primary" type="submit" id="wSubmit">Kostenlos registrieren</button>
             <span class="status" id="wStatus" aria-live="polite"></span>
           </div>
         </form>
@@ -371,12 +410,6 @@ footer .legal a{color:var(--muted)}
               <li>Abrechnung nach Gewicht. Eine Kofferwaage kostet etwa 10 €.</li>
             </ul>
           </div>
-          <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
-            <label for="wCodeInput">Schon angemeldet?</label>
-            <p class="muted" style="font-size:.9rem">Füge deinen Wäscher-Code ein, um dich auf diesem Gerät anzumelden.</p>
-            <input type="text" id="wCodeInput" placeholder="Wäscher-Code">
-            <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" id="wCodeBtn">Anmelden</button><span class="status" id="wCodeStatus"></span></div>
-          </div>
         </aside>
       </div>
     </div>
@@ -390,6 +423,17 @@ footer .legal a{color:var(--muted)}
         <p class="banner" id="wGesperrt" style="border:1.5px solid var(--bad)" hidden>Wegen zu vieler schlechter Bewertungen kannst du gerade keine neuen Aufträge annehmen. Schreib uns, wenn du Fragen hast.</p>
       </div>
       <div id="wJustCreated"></div>
+      <form id="pwForm" class="login" novalidate hidden>
+        <p class="lbl" style="grid-column:1/-1">Leg ein Passwort fest, damit du dich mit deiner WhatsApp-Nummer anmelden kannst.</p>
+        <div class="field">
+          <label for="pwNeu">Neues Passwort</label>
+          <input type="password" id="pwNeu" autocomplete="new-password" minlength="6">
+        </div>
+        <div class="field row-actions" style="align-self:end">
+          <button class="btn btn-primary" type="submit">Passwort speichern</button>
+          <span class="status" id="pwStatus" aria-live="polite"></span>
+        </div>
+      </form>
       <div class="row-actions">
         <button class="btn btn-sun" type="button" data-go="auftraege">Offene Aufträge ansehen</button>
       </div>
@@ -402,9 +446,7 @@ footer .legal a{color:var(--muted)}
         <ul id="wFeedback"></ul>
       </div>
       <details class="side" style="background:var(--surface);border:1.5px solid var(--line)">
-        <summary style="cursor:pointer;font-weight:600">Wäscher-Code und Profil</summary>
-        <p class="muted" style="font-size:.9rem;margin-top:10px">Mit diesem Code meldest du dich auf einem anderen Gerät an. Gib ihn niemandem weiter.</p>
-        <p class="code" id="wCodeShow"></p>
+        <summary style="cursor:pointer;font-weight:600">Profil</summary>
         <div class="row-actions" style="margin-top:10px">
           <button class="btn btn-ghost btn-sm" type="button" id="wLogout">Auf diesem Gerät abmelden</button>
           <button class="btn btn-danger btn-sm" type="button" id="wDelete">Profil löschen</button>
@@ -426,9 +468,12 @@ footer .legal a{color:var(--muted)}
     <div id="justCreated"></div>
     <div class="list" id="myOrders"></div>
     <div class="side" style="background:var(--surface);border:1.5px solid var(--line);max-width:640px">
-      <label for="codeInput">Auftrag mit Code öffnen</label>
-      <p class="muted" style="font-size:.9rem">Du hast den Auftragscode nach der Buchung bekommen. Damit siehst du deinen Auftrag auch auf einem anderen Gerät.</p>
-      <input type="text" id="codeInput" placeholder="Auftragscode">
+      <p class="lbl">Auftrag auf einem anderen Gerät öffnen</p>
+      <p class="muted" style="font-size:.9rem">Mit deiner WhatsApp-Nummer und der 6-stelligen Auftragsnummer, die du nach der Buchung bekommen hast.</p>
+      <div class="login" style="padding:0;border:0;background:none">
+        <div class="field"><label for="fWhatsapp">WhatsApp-Nummer</label><input type="tel" id="fWhatsapp" autocomplete="tel" placeholder="0176 12345678"></div>
+        <div class="field"><label for="fKurz">Auftragsnummer</label><input type="text" id="fKurz" maxlength="7" autocomplete="off" placeholder="z. B. K7M2QX" style="text-transform:uppercase"></div>
+      </div>
       <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" id="codeBtn">Auftrag öffnen</button><span class="status" id="codeStatus"></span></div>
     </div>
   </section>
@@ -588,14 +633,15 @@ $("orderForm").addEventListener("submit", async e => {
   if (!LIVE) { $("oStatus").textContent = "In der Vorschau kann nicht gebucht werden."; return; }
   $("oSubmit").disabled = true; $("oStatus").textContent = "Wird gebucht …";
   try {
-    const { code } = await call("POST", "auftraege", daten);
+    const { code, kurz } = await call("POST", "auftraege", daten);
     store.set(ORDERS_KEY, [code, ...store.get(ORDERS_KEY, [])]);
     $("orderForm").reset(); $("oTermin").value = tagPlus(1); updateSummary();
     $("oStatus").textContent = "";
     $("justCreated").replaceChildren(el("div", { class: "success" },
       el("h3", { text: "Dein Auftrag ist aufgegeben" }),
-      el("p", { text: "Sobald jemand aus deiner Nähe annimmt, siehst du es hier und kannst per WhatsApp schreiben. Speichere dir den Auftragscode, dann findest du den Auftrag auch auf einem anderen Gerät." }),
-      el("p", { class: "code", text: code }), copyButton(code)));
+      el("p", { text: "Sobald jemand aus deiner Nähe annimmt, siehst du es hier und kannst per WhatsApp schreiben." }),
+      el("p", {}, "Deine Auftragsnummer: ", el("span", { class: "kurz", text: kurz })),
+      el("p", { class: "muted", text: "Mit deiner WhatsApp-Nummer und dieser Auftragsnummer findest du den Auftrag auch auf einem anderen Gerät." })));
     show("meine"); window.scrollTo({ top: 0 });
   } catch (err) {
     $("oStatus").textContent = err.message;
@@ -678,7 +724,7 @@ function orderCard(a, code) {
     a.waescher && (a.status === "angenommen" || a.status === "erledigt") && el("p", {}, ratingLine(a.waescher.sterne, a.waescher.anzahl)),
     rate, myRating,
     a.status === "angenommen" && el("p", { class: "note", text: a.transport === "selbst" ? "Schreib deiner Wäscherin oder deinem Wäscher per WhatsApp und lass dir die Adresse schicken." : "Schick deiner Wäscherin oder deinem Wäscher per WhatsApp deine Adresse und klärt die Details." }),
-    el("div", { class: "foot" }, actions, status, el("p", { class: "note" }, "Auftragscode: ", el("span", { class: "code", style: "display:inline;padding:2px 6px", text: code }))));
+    el("div", { class: "foot" }, actions, status, a.kurz && el("p", { class: "note", text: "Auftragsnummer: " + a.kurz })));
 }
 function rateForm(a, code) {
   let gewaehlt = 0;
@@ -705,14 +751,12 @@ function rateForm(a, code) {
 }
 
 $("codeBtn").addEventListener("click", async () => {
-  const code = $("codeInput").value.trim();
-  const id = code.split("~")[0];
-  if (!code.includes("~")) { $("codeStatus").textContent = "Bitte den kompletten Code einfügen."; return; }
+  if (!LIVE) { $("codeStatus").textContent = "In der Vorschau nicht möglich."; return; }
   try {
-    await call("POST", `auftraege/${id}/status`, { code });
+    const { code } = await call("POST", "auftraege/finden", { whatsapp: $("fWhatsapp").value, kurz: $("fKurz").value });
     const codes = store.get(ORDERS_KEY, []);
-    if (!codes.includes(code)) store.set(ORDERS_KEY, [code, ...codes]);
-    $("codeInput").value = ""; $("codeStatus").textContent = "";
+    store.set(ORDERS_KEY, [code, ...codes.filter(c => c.split("~")[0] !== code.split("~")[0])]);
+    $("fKurz").value = ""; $("codeStatus").textContent = "";
     renderOrders();
   } catch (err) { $("codeStatus").textContent = err.message; }
 });
@@ -783,9 +827,10 @@ $("wForm").addEventListener("submit", async e => {
   const daten = {
     name: $("wName").value.trim(), whatsapp: $("wWhatsapp").value,
     stadtteile: [...document.querySelectorAll("#wStadtteile input:checked")].map(i => i.value),
-    trockner: $("wTrockner").checked, auto: $("wAuto").checked, einverstanden: $("wOk").checked, website: $("wWebsite").value
+    trockner: $("wTrockner").checked, auto: $("wAuto").checked, einverstanden: $("wOk").checked, website: $("wWebsite").value,
+    passwort: $("wPasswort").value
   };
-  const checks = { ewName: daten.name.length >= 2, ewWhatsapp: !!normalizePhone(daten.whatsapp), ewStadtteile: daten.stadtteile.length > 0, ewOk: daten.einverstanden };
+  const checks = { ewName: daten.name.length >= 2, ewWhatsapp: !!normalizePhone(daten.whatsapp), ewPasswort: daten.passwort.length >= 6, ewStadtteile: daten.stadtteile.length > 0, ewOk: daten.einverstanden };
   for (const [id, ok] of Object.entries(checks)) $(id).hidden = ok;
   if (!Object.values(checks).every(Boolean)) { $("wStatus").textContent = "Bitte prüfe die markierten Felder."; return; }
   if (!LIVE) { $("wStatus").textContent = "In der Vorschau ist keine Anmeldung möglich."; return; }
@@ -795,21 +840,30 @@ $("wForm").addEventListener("submit", async e => {
     store.set(WCODE_KEY, code);
     $("wForm").reset(); $("wStatus").textContent = "";
     $("wJustCreated").replaceChildren(el("div", { class: "success" },
-      el("h3", { text: "Du bist angemeldet" }),
-      el("p", { text: "Speichere dir deinen Wäscher-Code, zum Beispiel als Notiz im Handy. Damit meldest du dich auf anderen Geräten an." }),
-      el("p", { class: "code", text: code }), copyButton(code)));
+      el("h3", { text: "Du bist registriert" }),
+      el("p", { text: "Auf anderen Geräten meldest du dich einfach mit deiner WhatsApp-Nummer und deinem Passwort an." })));
     renderWaescher(); window.scrollTo({ top: 0 });
   } catch (err) { $("wStatus").textContent = err.message; }
   finally { $("wSubmit").disabled = false; }
 });
 
-$("wCodeBtn").addEventListener("click", async () => {
-  const code = $("wCodeInput").value.trim();
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!LIVE) { $("lStatus").textContent = "In der Vorschau ist keine Anmeldung möglich."; return; }
+  $("lSubmit").disabled = true; $("lStatus").textContent = "";
   try {
-    await call("POST", "waescher/ich", { code });
-    store.set(WCODE_KEY, code); $("wCodeInput").value = ""; $("wCodeStatus").textContent = "";
+    const { code } = await call("POST", "waescher/login", { whatsapp: $("lWhatsapp").value, passwort: $("lPasswort").value });
+    store.set(WCODE_KEY, code); $("loginForm").reset();
     renderWaescher();
-  } catch (err) { $("wCodeStatus").textContent = err.status ? err.message : "In der Vorschau ist keine Anmeldung möglich."; }
+  } catch (err) { $("lStatus").textContent = err.message; }
+  finally { $("lSubmit").disabled = false; }
+});
+$("pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    await call("POST", "waescher/passwort", { code: store.get(WCODE_KEY, ""), passwort: $("pwNeu").value });
+    $("pwForm").reset(); $("pwForm").hidden = true;
+  } catch (err) { $("pwStatus").textContent = err.message; }
 });
 
 async function renderWaescher() {
@@ -831,7 +885,7 @@ async function renderWaescher() {
   $("wFeedbackWrap").hidden = !fb.length;
   $("wFeedback").replaceChildren(...fb.map(f => el("li", {}, starsEl(f.sterne), el("span", { text: f.kommentar }),
     el("span", { class: "hint", text: new Date(f.datum + "T12:00:00").toLocaleDateString("de-DE") }))));
-  $("wCodeShow").textContent = code;
+  $("pwForm").hidden = me.hatPasswort;
   if (!me.auftraege.length) {
     $("wJobs").replaceChildren(el("div", { class: "empty" },
       el("p", { class: "muted", text: "Du hast gerade keinen Auftrag angenommen." }),
@@ -879,6 +933,16 @@ $("wDeleteYes").addEventListener("click", async () => {
     renderWaescher();
   } catch (err) { $("wProfileStatus").textContent = err.message; }
 });
+
+// Beispielkarte: so sieht ein angenommener Auftrag aus
+$("exampleAccepted").replaceChildren(el("article", { class: "card" },
+  el("div", { class: "top" },
+    el("div", {}, el("span", { class: "pill angenommen", text: "Angenommen von Aylin" }),
+      el("p", { class: "note", style: "margin-top:10px", text: "Morgen, 18–20 Uhr · M (ca. 8 kg) · Abholen & Bringen" })),
+    el("div", {}, el("p", { class: "price", text: eur(preisFuer("M", false, true)) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
+  el("p", {}, ratingLine(4.9, 23)),
+  el("div", { class: "chips" }, el("span", { class: "chip demo", text: "Beispiel" })),
+  el("div", { class: "foot" }, el("span", { class: "btn btn-ok fake-btn", text: "Aylin per WhatsApp schreiben" }))));
 
 // ===== Bewertungen gesamt =====
 async function loadRating() {

@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, randomBytes, randomInt, scryptSync, timingSafeEqual } from "node:crypto";
 
 export const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 export const MENGEN = { S: 5, M: 8, L: 12, XL: 18 };          // kg
@@ -13,6 +13,10 @@ const AKTIVE_PRO_WAESCHER = 3;   // gleichzeitig angenommene Aufträge
 const LOESCHEN_NACH_TAGEN = 30;  // alte Aufträge werden danach gelöscht
 const SPERRE_AB = { anzahl: 3, schnitt: 3 }; // ab 3 Bewertungen mit Schnitt unter 3 Sternen keine neuen Aufträge
 const FEEDBACK_MAX = 20;         // so viele Kommentare behält ein Wäscher-Profil
+const LOGIN_FEHLER_MAX = 5;      // falsche Passwörter pro Nummer und Stunde
+const FINDEN_PRO_TAG = 20;       // Auftragssuchen pro Internetanschluss
+const SITZUNGEN_MAX = 10;        // gleichzeitig angemeldete Geräte
+const KURZ_ZEICHEN = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
@@ -22,6 +26,20 @@ const text = (v, max) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").
 const heute = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); // JJJJ-MM-TT
 const tagePlus = (d, n) => new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
 const neuerCode = () => randomUUID().replace(/-/g, "");
+const kurzcode = () => Array.from({ length: 6 }, () => KURZ_ZEICHEN[randomInt(KURZ_ZEICHEN.length)]).join("");
+function passwortHash(pw) {
+  const salt = randomBytes(16).toString("hex");
+  return salt + ":" + scryptSync(pw, salt, 32).toString("hex");
+}
+function passwortOk(pw, gespeichert) {
+  if (typeof pw !== "string" || !gespeichert) return false;
+  const [salt, hash] = gespeichert.split(":");
+  const a = scryptSync(pw, salt, 32), b = Buffer.from(hash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+// Codes sind "id~geheim"; gültig ist der ursprüngliche Code oder eine spätere Sitzung (Login, Auftragssuche)
+const codePasst = (obj, secret) => obj.codeHash === sha(secret) || (obj.sitzungen || []).includes(sha(secret));
+const mitSitzung = (obj, secret) => ({ ...obj, sitzungen: [sha(secret), ...(obj.sitzungen || [])].slice(0, SITZUNGEN_MAX) });
 
 export function preisFuer(menge, express, abholung) {
   const kg = MENGEN[menge] || 0;
@@ -72,6 +90,7 @@ export function validateWaescher(b) {
   if (!stadtteile.length) return { error: "Bitte wähle mindestens einen Stadtteil." };
   const whatsapp = normalizePhone(b.whatsapp);
   if (!whatsapp) return { error: "Die WhatsApp-Nummer sieht nicht richtig aus." };
+  if (typeof b.passwort !== "string" || b.passwort.length < 6 || b.passwort.length > 100) return { error: "Bitte wähle ein Passwort mit mindestens 6 Zeichen." };
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
   return { waescher: { name, stadtteile, whatsapp, trockner: b.trockner === true, auto: b.auto === true } };
 }
@@ -108,7 +127,7 @@ async function waescherMitCode(store, code) {
   const c = parseCode(code);
   if (!c) return null;
   const w = await store.get(c.id, { type: "json" });
-  return w && w.codeHash === sha(c.secret) ? w : null;
+  return w && codePasst(w, c.secret) ? w : null;
 }
 // Bewertungen eines Wäschers: { summe, anzahl } für den Schnitt
 const schnitt = w => (w?.bewertungen?.anzahl ? Math.round(w.bewertungen.summe / w.bewertungen.anzahl * 10) / 10 : null);
@@ -162,9 +181,22 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     const { auftrag, error } = validateAuftrag(body);
     if (error) return json(400, { error });
     if (!(await limit(zaehler, "auftrag", ip, AUFTRAEGE_PRO_TAG))) return json(429, { error: "Du hast heute schon genug Aufträge aufgegeben. Versuch es morgen wieder." });
-    const id = randomUUID(), secret = neuerCode();
-    await auftraege.setJSON(id, { ...auftrag, id, erstellt: new Date().toISOString(), status: "offen", codeHash: sha(secret), waescherId: null });
-    return json(201, { id, code: `${id}~${secret}`, preis: auftrag.preis });
+    const id = randomUUID(), secret = neuerCode(), kurz = kurzcode();
+    await auftraege.setJSON(id, { ...auftrag, id, kurz, erstellt: new Date().toISOString(), status: "offen", codeHash: sha(secret), waescherId: null });
+    return json(201, { id, kurz, code: `${id}~${secret}`, preis: auftrag.preis });
+  }
+
+  // POST /api/auftraege/finden – Auftrag mit WhatsApp-Nummer und Auftragsnummer öffnen
+  if (p.length === 2 && p[0] === "auftraege" && p[1] === "finden") {
+    const nummer = normalizePhone(body.whatsapp);
+    const kurz = typeof body.kurz === "string" ? body.kurz.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
+    if (!nummer || kurz.length !== 6) return json(400, { error: "Bitte gib deine WhatsApp-Nummer und die 6-stellige Auftragsnummer ein." });
+    if (!(await limit(zaehler, "finden", ip, FINDEN_PRO_TAG))) return json(429, { error: "Zu viele Versuche heute. Bitte versuch es morgen wieder." });
+    const a = (await alle(auftraege)).find(x => x.kurz === kurz && x.whatsapp === nummer);
+    if (!a) return json(404, { error: "Zu dieser Nummer gibt es keinen Auftrag." });
+    const secret = neuerCode();
+    await auftraege.setJSON(a.id, mitSitzung(a, secret));
+    return json(200, { code: `${a.id}~${secret}` });
   }
 
   // POST /api/waescher – als Wäscher anmelden
@@ -172,9 +204,34 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     const { waescher: w, error } = validateWaescher(body);
     if (error) return json(400, { error });
     if (!(await limit(zaehler, "waescher", ip, WAESCHER_PRO_TAG))) return json(429, { error: "Heute kamen schon genug Anmeldungen von diesem Anschluss. Versuch es morgen wieder." });
+    const loginKey = "login-" + sha(w.whatsapp);
+    const vorhanden = await zaehler.get(loginKey, { type: "json" });
+    if (vorhanden && await waescher.get(vorhanden.id, { type: "json" })) return json(409, { error: "Mit dieser Nummer ist schon jemand angemeldet. Melde dich oben mit deinem Passwort an." });
+    // Alte Profile ohne Passwort (aus der ersten Version) mit derselben Nummer ersetzen
+    for (const alt of await alle(waescher)) if (!alt.passwortHash && alt.whatsapp === w.whatsapp) await waescher.delete(alt.id);
     const id = randomUUID(), secret = neuerCode();
-    await waescher.setJSON(id, { ...w, id, erstellt: new Date().toISOString(), codeHash: sha(secret) });
+    await waescher.setJSON(id, { ...w, id, erstellt: new Date().toISOString(), codeHash: sha(secret), passwortHash: passwortHash(body.passwort) });
+    await zaehler.setJSON(loginKey, { id });
     return json(201, { id, code: `${id}~${secret}` });
+  }
+
+  // POST /api/waescher/login – mit WhatsApp-Nummer und Passwort
+  if (p.length === 2 && p[0] === "waescher" && p[1] === "login") {
+    const nummer = normalizePhone(body.whatsapp);
+    if (!nummer || typeof body.passwort !== "string") return json(400, { error: "Bitte gib Nummer und Passwort ein." });
+    const stunde = new Date().toISOString().slice(0, 13);
+    const fehlerKey = `loginfehler-${sha(nummer + stunde)}`;
+    const fehler = (await zaehler.get(fehlerKey, { type: "json" }))?.n || 0;
+    if (fehler >= LOGIN_FEHLER_MAX) return json(429, { error: "Zu viele falsche Versuche. Bitte warte eine Stunde." });
+    const eintrag = await zaehler.get("login-" + sha(nummer), { type: "json" });
+    const w = eintrag ? await waescher.get(eintrag.id, { type: "json" }) : null;
+    if (!w || !passwortOk(body.passwort, w.passwortHash)) {
+      await zaehler.setJSON(fehlerKey, { n: fehler + 1 });
+      return json(403, { error: "Nummer oder Passwort stimmt nicht." });
+    }
+    const secret = neuerCode();
+    await waescher.setJSON(w.id, mitSitzung(w, secret));
+    return json(200, { code: `${w.id}~${secret}` });
   }
 
   // POST /api/waescher/ich – eigenes Profil und angenommene Aufträge
@@ -186,8 +243,22 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
       .map(a => ({ ...oeffentlich(a), vorname: a.vorname, hinweis: a.hinweis, status: a.status }));
     return json(200, {
       name: w.name, stadtteile: w.stadtteile, trockner: w.trockner, auto: w.auto, auftraege: meine,
-      sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0, gesperrt: gesperrt(w), feedback: w.feedback || []
+      sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0, gesperrt: gesperrt(w), feedback: w.feedback || [],
+      hatPasswort: !!w.passwortHash
     });
+  }
+
+  // POST /api/waescher/passwort – Passwort festlegen oder ändern (angemeldet)
+  if (p.length === 2 && p[0] === "waescher" && p[1] === "passwort") {
+    const w = await waescherMitCode(waescher, body.code);
+    if (!w) return json(403, { error: "Bitte melde dich neu an." });
+    if (typeof body.passwort !== "string" || body.passwort.length < 6 || body.passwort.length > 100) return json(400, { error: "Bitte wähle ein Passwort mit mindestens 6 Zeichen." });
+    const loginKey = "login-" + sha(w.whatsapp);
+    const vorhanden = await zaehler.get(loginKey, { type: "json" });
+    if (vorhanden && vorhanden.id !== w.id && await waescher.get(vorhanden.id, { type: "json" })) return json(409, { error: "Mit dieser Nummer ist schon ein anderes Profil angemeldet." });
+    await waescher.setJSON(w.id, { ...w, passwortHash: passwortHash(body.passwort) });
+    await zaehler.setJSON(loginKey, { id: w.id });
+    return json(200, { ok: true });
   }
 
   // POST /api/waescher/loeschen – Profil löschen, angenommene Aufträge werden wieder frei
@@ -198,6 +269,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
       if (a.waescherId === w.id && a.status === "angenommen") await auftraege.setJSON(a.id, { ...a, status: "offen", waescherId: null });
     }
     await waescher.delete(w.id);
+    await zaehler.delete("login-" + sha(w.whatsapp));
     return json(200, { ok: true });
   }
 
@@ -208,13 +280,13 @@ export async function handle(req, ip, { auftraege, waescher, zaehler }) {
     if (!a) return json(404, { error: "Diesen Auftrag gibt es nicht mehr." });
     const status = effektiv(a);
     const kc = parseCode(body.code);
-    const istKunde = !!kc && kc.id === id && sha(kc.secret) === a.codeHash;
+    const istKunde = !!kc && kc.id === id && codePasst(a, kc.secret);
 
     if (aktion === "status") {
       if (!istKunde) return json(403, { error: "Dieser Auftragscode ist ungültig." });
       const w = a.waescherId ? await waescher.get(a.waescherId, { type: "json" }) : null;
       return json(200, {
-        ...oeffentlich(a), status, bewertung: a.bewertung ? { sterne: a.bewertung.sterne } : null, kannBewerten: kannBewerten(a, status),
+        ...oeffentlich(a), kurz: a.kurz || null, status, bewertung: a.bewertung ? { sterne: a.bewertung.sterne } : null, kannBewerten: kannBewerten(a, status),
         waescher: w ? { name: w.name, sterne: schnitt(w), anzahl: w.bewertungen?.anzahl || 0 } : null
       });
     }

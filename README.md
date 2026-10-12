@@ -15,7 +15,8 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 ## Wie es läuft
 
 - Kunden buchen eine Abholung: Menge (S/M/L/XL), Standard oder Express, Tag und Uhrzeit. Preis: 2,50 €/kg, Express 4 €/kg, Waschen mindestens 15 €. Dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen).
-- Wäscher melden sich einmal an und nehmen offene Aufträge an (höchstens 3 gleichzeitig).
+- Wäscher registrieren sich mit WhatsApp-Nummer und Passwort und nehmen offene Aufträge an (höchstens 3 gleichzeitig). Nach 5 falschen Passwörtern ist die Nummer eine Stunde gesperrt.
+- Kunden finden ihre Aufträge mit WhatsApp-Nummer und 6-stelliger Auftragsnummer.
 - Erst nach der Annahme bekommen beide per Knopfdruck den WhatsApp-Kontakt zueinander. Nummern sind nie öffentlich.
 - Bezahlt wird bei der Rückgabe direkt an den Wäscher. Die Plattform nimmt (noch) kein Geld.
 - Kunden bewerten ihren Wäscher mit 1–5 Sternen. Ab 3 Bewertungen mit Schnitt unter 3 Sternen kann der Wäscher keine neuen Aufträge annehmen. Kommentare sieht nur der Wäscher.
