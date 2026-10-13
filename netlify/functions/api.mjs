@@ -4,7 +4,12 @@ import { createHash, randomUUID, randomBytes, randomInt, scryptSync, timingSafeE
 
 export const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 export const KG = { min: 3, max: 25 };
-export const PREIS = { kg: 2.5, expressAufschlag: 1.5, minimum: 15, transport: 4 }; // € pro kg, Express-Aufschlag pro kg, Mindestbestellwert fürs Waschen, Hol- & Bringpauschale
+export const PREIS = { expressAufschlag: 1.5, transport: 4 }; // Express-Aufschlag pro kg, Hol- & Bringpauschale
+// Leistungen: Preis pro kg und Mindestbestellwert fürs Waschen
+export const LEISTUNGEN = {
+  komplett: { name: "Waschen, trocknen, falten", kg: 2.5, minimum: 15 },
+  waschen: { name: "Nur waschen", kg: 1.5, minimum: 10 }
+};
 const BETREIBER_MAIL = "albrecht.sven89@gmail.com";
 const ZEITFENSTER = ["08–10 Uhr", "10–12 Uhr", "12–14 Uhr", "14–16 Uhr", "16–18 Uhr", "18–20 Uhr"];
 const TEMPERATUREN = ["30 °C", "40 °C", "60 °C", "Gemischt, bitte sortieren"];
@@ -48,8 +53,9 @@ function passwortOk(pw, gespeichert) {
 const codePasst = (obj, secret) => obj.codeHash === sha(secret) || (obj.sitzungen || []).includes(sha(secret));
 const mitSitzung = (obj, secret) => ({ ...obj, sitzungen: [sha(secret), ...(obj.sitzungen || [])].slice(0, SITZUNGEN_MAX) });
 
-export function preisFuer(kg, express, abholung) {
-  const waschen = Math.max(PREIS.minimum, kg * (PREIS.kg + (express ? PREIS.expressAufschlag : 0)));
+export function preisFuer(kg, express, abholung, leistung = "komplett") {
+  const l = LEISTUNGEN[leistung] || LEISTUNGEN.komplett;
+  const waschen = Math.max(l.minimum, kg * (l.kg + (express ? PREIS.expressAufschlag : 0)));
   return Math.round((waschen + (abholung ? PREIS.transport : 0)) * 100) / 100;
 }
 
@@ -73,6 +79,8 @@ export function validateAuftrag(b) {
   const kg = Number(b.kg);
   if (!Number.isInteger(kg) || kg < KG.min || kg > KG.max) return { error: `Bitte wähle zwischen ${KG.min} und ${KG.max} kg.` };
   if (!TEMPERATUREN.includes(b.temperatur)) return { error: "Bitte wähle die Temperatur." };
+  const leistung = b.leistung === undefined ? "komplett" : b.leistung;
+  if (!(leistung in LEISTUNGEN)) return { error: "Bitte wähle, was gemacht werden soll." };
   if (b.transport !== "abholung" && b.transport !== "selbst") return { error: "Bitte wähle, wie die Wäsche zum Wäscher kommt." };
   if (typeof b.termin !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(b.termin) || b.termin < heute() || b.termin > tagePlus(heute(), 14)) {
     return { error: "Bitte wähle einen Abholtag in den nächsten 14 Tagen." };
@@ -84,12 +92,15 @@ export function validateAuftrag(b) {
   if (b.einverstanden !== true) return { error: "Bitte akzeptiere die Nutzungsbedingungen." };
   const express = b.express === true;
   const abholung = b.transport === "abholung";
+  // Trocknen: beim Komplett-Service entweder Trockner oder Luft. Express mit Trocknen geht nur mit Trockner.
+  const trockner = leistung === "komplett" ? b.trockner !== false : null;
+  if (express && leistung === "komplett" && !trockner) return { error: "Express geht nur, wenn die Wäsche in den Trockner darf. An der Luft dauert das Trocknen bis zum nächsten Tag." };
   return {
     auftrag: {
-      vorname, stadtteil: b.stadtteil, kg, express, transport: b.transport,
+      vorname, stadtteil: b.stadtteil, kg, express, transport: b.transport, leistung, trockner,
       temperatur: b.temperatur, parfumfrei: b.parfumfrei === true,
       termin: b.termin, zeitfenster: b.zeitfenster, hinweis: text(b.hinweis, 300), whatsapp,
-      preis: preisFuer(kg, express, abholung)
+      preis: preisFuer(kg, express, abholung, leistung)
     }
   };
 }
@@ -107,10 +118,14 @@ export function validateWaescher(b) {
   return { waescher: { name, stadtteile, whatsapp, trockner: b.trockner === true, auto: b.auto === true } };
 }
 
+// Express mit Trocknen schafft nur, wer einen Trockner hat
+const brauchtTrockner = a => !!a.express && (a.leistung || "komplett") === "komplett" && a.trockner !== false;
+
 // Status, wie Kunden und Wäscher ihn sehen
 const effektiv = a => (a.status === "offen" && a.termin < heute() ? "abgelaufen" : a.status);
 const oeffentlich = a => ({
-  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport || "abholung",
+  id: a.id, erstellt: a.erstellt, stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport || "abholung", leistung: a.leistung || "komplett",
+  trockner: a.trockner ?? null, trocknerNoetig: brauchtTrockner(a),
   temperatur: a.temperatur, parfumfrei: a.parfumfrei, termin: a.termin, zeitfenster: a.zeitfenster, preis: a.preis
 });
 
@@ -163,7 +178,7 @@ export async function benachrichtigen({ abos, zaehler }, a, senden = webpush.sen
   const v = await vapidSchluessel(zaehler);
   const payload = JSON.stringify({
     title: `Neuer Auftrag in ${a.stadtteil}`,
-    body: `ca. ${a.kg} kg · ${datum(a.termin)}, ${a.zeitfenster} · ${eur(a.preis)} für dich`,
+    body: `${(LEISTUNGEN[a.leistung] || LEISTUNGEN.komplett).name}, ca. ${a.kg} kg · ${datum(a.termin)}, ${a.zeitfenster} · ${eur(a.preis)} für dich`,
     url: "/#auftraege"
   });
   const optionen = { TTL: 6 * 3600, vapidDetails: { subject: "mailto:" + BETREIBER_MAIL, publicKey: v.publicKey, privateKey: v.privateKey } };
@@ -283,7 +298,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
         heute: heute(), besuche, abos: aboListe.length, aboProStadtteil,
         auftraege: auftragsListe.sort((x, y) => y.erstellt.localeCompare(x.erstellt)).map(a => ({
           id: a.id, kurz: a.kurz, erstellt: a.erstellt, status: effektiv(a), vorname: a.vorname, whatsapp: a.whatsapp,
-          stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport, termin: a.termin, zeitfenster: a.zeitfenster,
+          stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport, leistung: a.leistung || "komplett", trockner: a.trockner ?? null, termin: a.termin, zeitfenster: a.zeitfenster,
           temperatur: a.temperatur, hinweis: a.hinweis, preis: a.preis, waescher: a.waescherId ? (namen[a.waescherId] || "gelöscht") : null,
           bewertung: a.bewertung || null
         })),
@@ -497,7 +512,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
       if (!ich || ich.id !== w.id) return json(403, { error: "Das ist nicht dein Auftrag." });
       const nachricht = a.transport === "selbst"
         ? `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: ${datum(a.termin)}, ${a.zeitfenster}, ca. ${a.kg} kg. Du bringst die Wäsche selbst vorbei, ich schicke dir gleich meine Adresse.`
-        : `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen: Ich hole ${datum(a.termin)}, ${a.zeitfenster} ab, ca. ${a.kg} kg. Schickst du mir noch deine Adresse?`;
+        : `Hallo ${a.vorname}, ich bin ${w.name} von Dortmund wäscht und habe deinen Auftrag angenommen (${(LEISTUNGEN[a.leistung] || LEISTUNGEN.komplett).name}): Ich hole ${datum(a.termin)}, ${a.zeitfenster} ab, ca. ${a.kg} kg. Schickst du mir noch deine Adresse?`;
       return json(200, { link: waLink(a.whatsapp, nachricht) });
     }
 
@@ -508,6 +523,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
     if (aktion === "annehmen") {
       if (gesperrt(w)) return json(403, { error: w.gesperrtManuell ? "Dein Profil ist gerade gesperrt. Schreib uns, wenn du Fragen hast." : "Wegen zu vieler schlechter Bewertungen kannst du gerade keine neuen Aufträge annehmen. Schreib uns, wenn du Fragen hast." });
       if (status !== "offen") return json(409, { error: "Diesen Auftrag hat schon jemand anderes angenommen." });
+      if (brauchtTrockner(a) && !w.trockner) return json(409, { error: "Für diesen Express-Auftrag brauchst du einen Trockner, sonst wird die Wäsche heute nicht trocken." });
       const aktiv = (await alle(auftraege)).filter(x => x.waescherId === w.id && x.status === "angenommen").length;
       if (aktiv >= AKTIVE_PRO_WAESCHER) return json(409, { error: `Du hast schon ${AKTIVE_PRO_WAESCHER} laufende Aufträge. Schließ erst einen ab.` });
       await auftraege.setJSON(id, { ...a, status: "angenommen", waescherId: w.id, angenommen: new Date().toISOString() });

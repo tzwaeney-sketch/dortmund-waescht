@@ -116,6 +116,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:32px;margin:0;cur
 .switch:has(input:checked) .track::after{transform:translateX(18px)}
 .switch:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
 .switch small{display:block;font-weight:400;color:var(--muted);font-size:.85rem}
+.switch:has(input:disabled){opacity:.55;cursor:not-allowed}
 
 /* Checkliste & Hinweise */
 .checklist{background:var(--soft);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -268,6 +269,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
         <ul>
           <li>Abholen &amp; Bringen: <span id="heroTransport">4</span> € pauschal</li>
           <li>Selbst vorbeibringen: ohne Pauschale</li>
+          <li>Nur waschen: <span id="heroNurWaschen">1,50 €</span> / kg</li>
           <li>Express am selben Tag: +<span id="heroExpress">1,50</span> € / kg</li>
           <li>Mindestbestellwert <span id="heroMin">15</span> €</li>
         </ul>
@@ -303,14 +305,28 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
           <span class="hint" id="kgHint">Keine Waage? Kein Problem: Gewogen wird bei der Übergabe.</span>
         </div>
         <div class="field full">
+          <span class="lbl" id="leistungLbl">Was soll gemacht werden?</span>
+          <div class="choice" role="radiogroup" aria-labelledby="leistungLbl">
+            <label><input type="radio" name="leistung" value="komplett" checked><span>Waschen, trocknen, falten</span><small><span id="feeKomplett">2,50 €</span> pro kg · kommt schrankfertig zurück</small></label>
+            <label><input type="radio" name="leistung" value="waschen"><span>Nur waschen</span><small><span id="feeWaschen">1,50 €</span> pro kg · kommt feucht zurück, du hängst selbst auf</small></label>
+          </div>
+        </div>
+        <div class="field full">
           <span class="lbl" id="transportLbl">Wie kommt die Wäsche zum Wäscher?</span>
           <div class="choice" role="radiogroup" aria-labelledby="transportLbl">
             <label><input type="radio" name="transport" value="abholung" checked><span>Wäscher holt ab und bringt zurück</span><small>+ <span id="transportFee">4 €</span> Pauschale</small></label>
             <label><input type="radio" name="transport" value="selbst"><span>Ich bringe und hole selbst</span><small>0 €, du bekommst die Adresse per WhatsApp</small></label>
           </div>
         </div>
+        <div class="field full" id="trocknenFeld">
+          <span class="lbl" id="trocknenLbl">Wie soll getrocknet werden?</span>
+          <div class="choice" role="radiogroup" aria-labelledby="trocknenLbl">
+            <label><input type="radio" name="trocknen" value="trockner" checked><span>Trockner erlaubt</span><small>Schneller, auch Express möglich</small></label>
+            <label><input type="radio" name="trocknen" value="luft"><span>Nur an der Luft</span><small>Schonender, dauert bis zum nächsten Tag</small></label>
+          </div>
+        </div>
         <div class="field full">
-          <label class="switch" for="oExpress"><input type="checkbox" id="oExpress" role="switch"><span class="track" aria-hidden="true"></span><span><b>Express am selben Tag</b><small>+<span id="expressFee">1,50 €</span> pro kg Aufschlag, zurück am Abend</small></span></label>
+          <label class="switch" for="oExpress"><input type="checkbox" id="oExpress" role="switch"><span class="track" aria-hidden="true"></span><span><b>Express am selben Tag</b><small id="expressText">+<span id="expressFee">1,50 €</span> pro kg Aufschlag, zurück am Abend</small></span></label>
         </div>
         <div class="field">
           <label for="oTermin" id="terminLbl">Wann soll der Wäscher kommen?</label>
@@ -555,7 +571,11 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
 let LIVE = false; // wird beim Start erkannt
 const STADTTEILE = ["Innenstadt", "Kreuzviertel", "Nordstadt", "Hörde", "Hombruch", "Barop / Uni", "Eving", "Scharnhorst", "Brackel", "Aplerbeck", "Huckarde", "Lütgendortmund", "Mengede", "Hacheney", "Kirchhörde"];
 const KG = { min: 3, max: 25 };
-const PREIS = { kg: 2.5, expressAufschlag: 1.5, minimum: 15, transport: 4 }; // gleich wie im Server
+const PREIS = { expressAufschlag: 1.5, transport: 4 }; // gleich wie im Server
+const LEISTUNGEN = {
+  komplett: { name: "Waschen, trocknen, falten", kurz: "Komplett", kg: 2.5, minimum: 15 },
+  waschen: { name: "Nur waschen", kurz: "Nur waschen", kg: 1.5, minimum: 10 }
+};
 const KOSTEN_PRO_LADUNG = 1.5; // grobe Schätzung Strom, Wasser, Waschmittel für Wäscher
 const ORDERS_KEY = "dw-auftraege", WCODE_KEY = "dw-waescher-code";
 
@@ -577,8 +597,9 @@ function el(tag, props = {}, ...kids) {
   return n;
 }
 const eur = n => Number(n).toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
-const waschpreis = (kg, express) => Math.max(PREIS.minimum, kg * (PREIS.kg + (express ? PREIS.expressAufschlag : 0)));
-const preisFuer = (kg, express, abholung) => Math.round((waschpreis(kg, express) + (abholung ? PREIS.transport : 0)) * 100) / 100;
+const leistungVon = l => LEISTUNGEN[l] || LEISTUNGEN.komplett;
+const waschpreis = (kg, express, l = "komplett") => Math.max(leistungVon(l).minimum, kg * (leistungVon(l).kg + (express ? PREIS.expressAufschlag : 0)));
+const preisFuer = (kg, express, abholung, l = "komplett") => Math.round((waschpreis(kg, express, l) + (abholung ? PREIS.transport : 0)) * 100) / 100;
 const isoTag = d => d.toLocaleDateString("sv-SE");
 const tagPlus = n => { const d = new Date(); d.setDate(d.getDate() + n); return isoTag(d); };
 function fmtTag(iso) {
@@ -630,7 +651,7 @@ function profitEl(kg = 8) {
   const waschen = waschpreis(kg, false), einnahme = waschen + PREIS.transport, rein = einnahme - KOSTEN_PRO_LADUNG;
   const line = (k, v, cls = "line") => el("div", { class: cls }, el("span", { text: k }), el("span", { text: v }));
   return el("div", { class: "profit" },
-    line(`${kg} kg Wäsche × ${eur(PREIS.kg)}`, eur(waschen)),
+    line(`${kg} kg Wäsche × ${eur(LEISTUNGEN.komplett.kg)}`, eur(waschen)),
     line("Abholen & Bringen", "+ " + eur(PREIS.transport)),
     line("Strom, Wasser, Waschmittel (ca.)", "− " + eur(KOSTEN_PRO_LADUNG)),
     line("Bleibt bei dir", "≈ " + eur(rein), "line sum"),
@@ -685,6 +706,7 @@ function show(name) {
   try { history.replaceState(null, "", "#" + name); } catch {}
 }
 for (const v of VIEWS) $("tab-" + v).addEventListener("click", () => show(v));
+window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (VIEWS.includes(v)) show(v); }); // z. B. Tipp auf Push-Nachricht
 document.addEventListener("click", e => {
   const go = e.target.closest("[data-go]");
   if (go) { show(go.dataset.go); window.scrollTo({ top: 0 }); }
@@ -694,10 +716,12 @@ document.addEventListener("click", e => {
 $("oStadtteil").append(...STADTTEILE.map(s => el("option", { value: s, text: s })));
 $("fStadtteil").append(el("option", { value: "", text: "Ganz Dortmund" }), ...STADTTEILE.map(s => el("option", { value: s, text: s })));
 $("wStadtteile").append(...STADTTEILE.map((s, i) => el("label", { class: "check" }, el("input", { type: "checkbox", value: s, id: "wSt" + i }), s)));
-$("heroPreis").textContent = PREIS.kg.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+$("heroPreis").textContent = LEISTUNGEN.komplett.kg.toLocaleString("de-DE", { minimumFractionDigits: 2 });
+$("heroNurWaschen").textContent = eur(LEISTUNGEN.waschen.kg);
+$("feeKomplett").textContent = eur(LEISTUNGEN.komplett.kg);
+$("feeWaschen").textContent = eur(LEISTUNGEN.waschen.kg);
 $("heroExpress").textContent = PREIS.expressAufschlag.toLocaleString("de-DE", { minimumFractionDigits: 2 });
-$("expressFee").textContent = eur(PREIS.expressAufschlag);
-$("heroMin").textContent = PREIS.minimum;
+$("heroMin").textContent = LEISTUNGEN.komplett.minimum;
 $("heroTransport").textContent = PREIS.transport;
 $("transportFee").textContent = eur(PREIS.transport);
 $("profitSide").replaceChildren(profitEl(8));
@@ -706,21 +730,32 @@ $("profitSide").replaceChildren(profitEl(8));
 const kgWert = () => Number($("oKg").value);
 const express = () => $("oExpress").checked;
 const transport = () => document.querySelector('input[name="transport"]:checked').value;
+const leistung = () => document.querySelector('input[name="leistung"]:checked').value;
+const trocknerErlaubt = () => document.querySelector('input[name="trocknen"]:checked').value === "trockner";
 $("oTermin").min = tagPlus(0);
 $("oTermin").max = tagPlus(14);
 $("oTermin").value = tagPlus(1);
 
 function updateSummary() {
-  const kg = kgWert(), x = express(), hol = transport() === "abholung";
+  // Trocknen nur beim Komplett-Service; Express mit Lufttrocknen ist nicht möglich
+  const komplett = leistung() === "komplett";
+  $("trocknenFeld").hidden = !komplett;
+  const expressMoeglich = !komplett || trocknerErlaubt();
+  $("oExpress").disabled = !expressMoeglich;
+  if (!expressMoeglich) $("oExpress").checked = false;
+  $("expressText").textContent = expressMoeglich
+    ? `+${eur(PREIS.expressAufschlag)} pro kg Aufschlag, zurück am Abend`
+    : "Nicht möglich bei Lufttrocknen, das dauert bis zum nächsten Tag";
+  const kg = kgWert(), x = express(), hol = transport() === "abholung", l = leistungVon(leistung());
   $("kgOut").textContent = `${kg} kg`;
   document.querySelectorAll(".preset").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.kg) === kg)));
-  const basis = kg * PREIS.kg, aufschlag = x ? kg * PREIS.expressAufschlag : 0;
-  const lines = [[`Waschen, trocknen, falten: ca. ${kg} kg × ${eur(PREIS.kg)}`, eur(basis)]];
+  const basis = kg * l.kg, aufschlag = x ? kg * PREIS.expressAufschlag : 0;
+  const lines = [[`${l.name}: ca. ${kg} kg × ${eur(l.kg)}`, eur(basis)]];
   if (x) lines.push([`Express: ${kg} kg × ${eur(PREIS.expressAufschlag)}`, "+ " + eur(aufschlag)]);
-  if (basis + aufschlag < PREIS.minimum) lines.push([`Aufgerundet auf Mindestbestellwert`, eur(PREIS.minimum)]);
+  if (basis + aufschlag < l.minimum) lines.push([`Aufgerundet auf Mindestbestellwert`, eur(l.minimum)]);
   lines.push(hol ? ["Abholen & Bringen", "+ " + eur(PREIS.transport)] : ["Selbst bringen & holen", "0 €"]);
   $("sumLines").replaceChildren(...lines.map(([k, v]) => el("div", { class: "line" }, el("span", { text: k }), el("span", { text: v }))));
-  $("sumTotal").textContent = eur(preisFuer(kg, x, hol));
+  $("sumTotal").textContent = eur(preisFuer(kg, x, hol, leistung()));
   $("terminLbl").textContent = hol ? "Wann soll der Wäscher kommen?" : "Wann bringst du die Wäsche?";
   $("adresseHint").textContent = hol
     ? "Deine Adresse schickst du erst per WhatsApp, wenn jemand angenommen hat."
@@ -735,7 +770,7 @@ $("orderForm").addEventListener("submit", async e => {
   e.preventDefault();
   const termin = $("oTermin").value;
   const daten = {
-    vorname: $("oVorname").value.trim(), stadtteil: $("oStadtteil").value, kg: kgWert(), express: express(), transport: transport(),
+    vorname: $("oVorname").value.trim(), stadtteil: $("oStadtteil").value, kg: kgWert(), express: express(), transport: transport(), leistung: leistung(), trockner: trocknerErlaubt(),
     temperatur: $("oTemp").value, parfumfrei: $("oParfum").checked, termin, zeitfenster: $("oZeit").value,
     hinweis: $("oHinweis").value.trim(), whatsapp: $("oWhatsapp").value, einverstanden: $("oOk").checked, website: $("oWebsite").value,
     checkliste: $("cEmpfindlich").checked && $("cTaschen").checked
@@ -779,7 +814,7 @@ const STATUS_TEXT = {
   abgelaufen: "Abgelaufen: Niemand hat angenommen"
 };
 function orderSummary(a) {
-  return `${fmtTag(a.termin)}, ${a.zeitfenster} · ca. ${a.kg} kg · ${a.express ? "Express" : "Standard"} · ${a.transport === "selbst" ? "Selbst bringen" : "Abholen & Bringen"} · ${a.temperatur}`;
+  return `${fmtTag(a.termin)}, ${a.zeitfenster} · ${leistungVon(a.leistung).kurz} · ca. ${a.kg} kg · ${a.express ? "Express" : "Standard"} · ${a.transport === "selbst" ? "Selbst bringen" : "Abholen & Bringen"} · ${a.temperatur}`;
 }
 async function renderOrders() {
   const codes = store.get(ORDERS_KEY, []);
@@ -888,8 +923,8 @@ $("codeBtn").addEventListener("click", async () => {
 // ===== Offene Aufträge =====
 const BEISPIELE = [
   { id: "bsp-1", beispiel: true, stadtteil: "Kreuzviertel", kg: 8, express: false, temperatur: "40 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "18–20 Uhr", transport: "abholung", preis: preisFuer(8, false, true) },
-  { id: "bsp-2", beispiel: true, stadtteil: "Barop / Uni", kg: 12, express: false, temperatur: "Gemischt, bitte sortieren", parfumfrei: true, termin: tagPlus(2), zeitfenster: "16–18 Uhr", transport: "selbst", preis: preisFuer(12, false, false) },
-  { id: "bsp-3", beispiel: true, stadtteil: "Hörde", kg: 5, express: true, temperatur: "30 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "08–10 Uhr", transport: "abholung", preis: preisFuer(5, true, true) }
+  { id: "bsp-2", beispiel: true, stadtteil: "Barop / Uni", kg: 12, express: false, temperatur: "Gemischt, bitte sortieren", parfumfrei: true, termin: tagPlus(2), zeitfenster: "16–18 Uhr", transport: "selbst", leistung: "waschen", preis: preisFuer(12, false, false, "waschen") },
+  { id: "bsp-3", beispiel: true, stadtteil: "Hörde", kg: 5, express: true, trocknerNoetig: true, temperatur: "30 °C", parfumfrei: false, termin: tagPlus(1), zeitfenster: "08–10 Uhr", transport: "abholung", preis: preisFuer(5, true, true) }
 ];
 let offene = [];
 let boardLoading = null;
@@ -916,6 +951,9 @@ function jobCard(a) {
       el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "für dich, ca." }))),
     el("div", { class: "chips" },
       el("span", { class: "chip strong", text: `ca. ${a.kg} kg` }),
+      el("span", { class: "chip" + (a.leistung === "waschen" ? " sun" : ""), text: a.leistung === "waschen" ? "Nur waschen, feucht zurück" : "Waschen, trocknen, falten" }),
+      a.leistung !== "waschen" && a.trockner === false && el("span", { class: "chip", text: "Nur Lufttrocknen" }),
+      a.trocknerNoetig && el("span", { class: "chip sun", text: "Trockner nötig" }),
       a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
       el("span", { class: "chip", text: a.transport === "selbst" ? "Kunde bringt selbst" : "Abholen & Bringen" }),
       el("span", { class: "chip", text: a.temperatur }),
@@ -1120,6 +1158,9 @@ function myJobCard(a, wcode) {
       el("div", {}, el("p", { class: "price", text: eur(a.preis) }), el("p", { class: "per", text: "ca., nach Gewicht" }))),
     el("div", { class: "chips" },
       el("span", { class: "chip strong", text: `ca. ${a.kg} kg` }),
+      el("span", { class: "chip" + (a.leistung === "waschen" ? " sun" : ""), text: a.leistung === "waschen" ? "Nur waschen, feucht zurück" : "Waschen, trocknen, falten" }),
+      a.leistung !== "waschen" && a.trockner === false && el("span", { class: "chip", text: "Nur Lufttrocknen" }),
+      a.trocknerNoetig && el("span", { class: "chip sun", text: "Trockner nötig" }),
       a.express && el("span", { class: "chip sun", text: "Express: am selben Tag zurück" }),
       el("span", { class: "chip", text: a.transport === "selbst" ? "Kunde bringt selbst" : "Abholen & Bringen" }),
       el("span", { class: "chip", text: a.temperatur }),

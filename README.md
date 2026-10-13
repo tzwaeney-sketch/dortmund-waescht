@@ -14,7 +14,7 @@ Die Anzeigen werden im Speicher von Netlify gespeichert (Netlify Blobs). Ein wei
 
 ## Wie es läuft
 
-- Kunden schätzen die Menge per Schieberegler (3–25 kg). Preis: 2,50 €/kg, Express +1,50 €/kg, Mindestbestellwert 15 €, dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen). Abgerechnet wird nach exaktem Wiegen bei der Übergabe.
+- Kunden schätzen die Menge per Schieberegler (3–25 kg). Preis: Waschen, trocknen, falten 2,50 €/kg (mind. 15 €) oder nur waschen 1,50 €/kg (mind. 10 €, kommt feucht zurück), Express +1,50 €/kg (beim Komplett-Service nur mit Trockner), dazu 4 € Pauschale, wenn der Wäscher abholt und zurückbringt (Kunden können auch selbst bringen). Abgerechnet wird nach exaktem Wiegen bei der Übergabe.
 - Vor dem Absenden bestätigen Kunden eine Checkliste (nichts Empfindliches, Taschen leer) und bekommen Tipps zu Übergabefoto und Haftung.
 - Wäscher können Push-Benachrichtigungen für ihre Stadtteile aktivieren und bekommen bei jedem neuen Auftrag dort eine Nachricht aufs Handy.
 - Wäscher registrieren sich mit WhatsApp-Nummer und Passwort und nehmen offene Aufträge an (höchstens 3 gleichzeitig). Nach 5 falschen Passwörtern ist die Nummer eine Stunde gesperrt.

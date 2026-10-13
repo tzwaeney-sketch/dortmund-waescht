@@ -448,7 +448,7 @@ function renderOrders() {
       el("td", {}, el("span", { class: "pill " + a.status, text: a.status[0].toUpperCase() + a.status.slice(1) })),
       el("td", {}, tagLang(a.termin), el("br"), el("span", { class: "hint", text: a.zeitfenster })),
       el("td", { text: a.stadtteil }),
-      el("td", {}, `ca. ${a.kg} kg`, el("br"), el("span", { class: "hint", text: [a.express && "Express", a.transport === "selbst" ? "bringt selbst" : "Abholung", a.temperatur].filter(Boolean).join(" · ") })),
+      el("td", {}, `ca. ${a.kg} kg`, el("br"), el("span", { class: "hint", text: [a.leistung === "waschen" ? "Nur waschen" : "Komplett", a.leistung !== "waschen" && a.trockner === false && "Lufttrocknen", a.express && "Express", a.transport === "selbst" ? "bringt selbst" : "Abholung", a.temperatur].filter(Boolean).join(" · ") })),
       el("td", { class: "num", text: eur(a.preis) }),
       el("td", {}, a.vorname || "–", el("br"), a.whatsapp ? el("a", { href: `https://wa.me/${a.whatsapp}`, target: "_blank", rel: "noopener", text: tel(a.whatsapp) }) : null,
         a.hinweis ? el("div", { class: "hint", text: "„" + a.hinweis + "“" }) : null),
