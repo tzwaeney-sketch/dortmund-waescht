@@ -264,6 +264,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
       <aside class="tag" aria-label="Preise">
         <p class="eyebrow">Pflegeetikett · Preis</p>
         <p class="big"><span id="heroPreis">2,50</span><small> € / kg</small></p>
+        <p style="font-weight:600">waschen, trocknen &amp; zusammenlegen</p>
         <ul>
           <li>Abholen &amp; Bringen: <span id="heroTransport">4</span> € pauschal</li>
           <li>Selbst vorbeibringen: ohne Pauschale</li>
@@ -714,7 +715,7 @@ function updateSummary() {
   $("kgOut").textContent = `${kg} kg`;
   document.querySelectorAll(".preset").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.kg) === kg)));
   const basis = kg * PREIS.kg, aufschlag = x ? kg * PREIS.expressAufschlag : 0;
-  const lines = [[`ca. ${kg} kg × ${eur(PREIS.kg)}`, eur(basis)]];
+  const lines = [[`Waschen, trocknen, falten: ca. ${kg} kg × ${eur(PREIS.kg)}`, eur(basis)]];
   if (x) lines.push([`Express: ${kg} kg × ${eur(PREIS.expressAufschlag)}`, "+ " + eur(aufschlag)]);
   if (basis + aufschlag < PREIS.minimum) lines.push([`Aufgerundet auf Mindestbestellwert`, eur(PREIS.minimum)]);
   lines.push(hol ? ["Abholen & Bringen", "+ " + eur(PREIS.transport)] : ["Selbst bringen & holen", "0 €"]);
