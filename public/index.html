@@ -1071,7 +1071,7 @@ async function renderAlert(box, vorauswahl) {
     speichern.addEventListener("click", async () => { if (await pushSpeichern(gewaehlt(), speichern)) renderAlert(box, vorauswahl); });
     ab.addEventListener("click", async () => {
       busy(ab, true, "Wird abbestellt …");
-      try { await call("POST", "push/abmelden", { endpoint: sub.endpoint }); await sub.unsubscribe(); toast("Benachrichtigungen abbestellt."); renderAlert(box, vorauswahl); }
+      try { await call("POST", "push/abmelden", { endpoint: sub.endpoint }); toast("Benachrichtigungen abbestellt."); renderAlert(box, vorauswahl); }
       catch (err) { toast(err.message, "bad"); busy(ab, false); }
     });
     inhalt = [el("p", { class: "rating-line", style: "color:var(--ok);font-weight:600", text: `✓ Benachrichtigungen aktiv für ${aktiv.join(", ")}` }), waehlen, el("div", { class: "row-actions" }, speichern, ab)];

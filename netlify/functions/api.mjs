@@ -172,21 +172,33 @@ async function vapidSchluessel(zaehler) {
   return v;
 }
 const eur = n => Number(n).toLocaleString("de-DE", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + " €";
-export async function benachrichtigen({ abos, zaehler }, a, senden = webpush.sendNotification) {
-  const liste = (await alle(abos)).filter(x => x.stadtteile.includes(a.stadtteil));
+// Push an eine Liste von Abos schicken; abgelaufene Abos werden dabei aufgeräumt
+async function pushSenden({ abos, zaehler }, liste, nachricht, sender = webpush.sendNotification) {
   if (!liste.length) return 0;
   const v = await vapidSchluessel(zaehler);
-  const payload = JSON.stringify({
-    title: `Neuer Auftrag in ${a.stadtteil}`,
-    body: `${(LEISTUNGEN[a.leistung] || LEISTUNGEN.komplett).name}, ca. ${a.kg} kg · ${datum(a.termin)}, ${a.zeitfenster} · ${eur(a.preis)} für dich`,
-    url: "/#auftraege"
-  });
+  const payload = JSON.stringify(nachricht);
   const optionen = { TTL: 6 * 3600, vapidDetails: { subject: "mailto:" + BETREIBER_MAIL, publicKey: v.publicKey, privateKey: v.privateKey } };
   const ergebnisse = await Promise.allSettled(liste.map(async x => {
-    try { await senden(x.subscription, payload, optionen); }
+    try { await sender(x.subscription, payload, optionen); }
     catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await abos.delete(x.id); throw e; } // abgelaufene Abos aufräumen
   }));
   return ergebnisse.filter(r => r.status === "fulfilled").length;
+}
+// Wäscher in passenden Stadtteilen über einen neuen Auftrag informieren
+export async function benachrichtigen(stores, a, sender) {
+  const liste = (await alle(stores.abos)).filter(x => !x.admin && x.stadtteile.includes(a.stadtteil));
+  return pushSenden(stores, liste, {
+    title: `Neuer Auftrag in ${a.stadtteil}`,
+    body: `${(LEISTUNGEN[a.leistung] || LEISTUNGEN.komplett).name}, ca. ${a.kg} kg · ${datum(a.termin)}, ${a.zeitfenster} · ${eur(a.preis)} für dich`,
+    url: "/#auftraege"
+  }, sender);
+}
+// Betreiber über Neuigkeiten informieren (neue Wäscher, Aufträge, Bewertungen)
+export async function adminInfo(stores, title, body, sender) {
+  try {
+    const liste = (await alle(stores.abos)).filter(x => x.admin);
+    await pushSenden(stores, liste, { title, body, url: "/admin.html" }, sender);
+  } catch {} // Benachrichtigungen dürfen nie eine Aktion verhindern
 }
 function pruefeAbo(sub) {
   if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string") return null;
@@ -293,9 +305,9 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
         besuche.push({ tag, gesamt: t?.gesamt || 0, quellen: t?.quellen || {} });
       }
       const aboProStadtteil = {};
-      for (const a of aboListe) for (const st of a.stadtteile) aboProStadtteil[st] = (aboProStadtteil[st] || 0) + 1;
+      for (const a of aboListe) if (!a.admin) for (const st of a.stadtteile) aboProStadtteil[st] = (aboProStadtteil[st] || 0) + 1;
       return json(200, {
-        heute: heute(), besuche, abos: aboListe.length, aboProStadtteil,
+        heute: heute(), besuche, abos: aboListe.filter(a => !a.admin).length, aboProStadtteil,
         auftraege: auftragsListe.sort((x, y) => y.erstellt.localeCompare(x.erstellt)).map(a => ({
           id: a.id, kurz: a.kurz, erstellt: a.erstellt, status: effektiv(a), vorname: a.vorname, whatsapp: a.whatsapp,
           stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport, leistung: a.leistung || "komplett", trockner: a.trockner ?? null, termin: a.termin, zeitfenster: a.zeitfenster,
@@ -334,6 +346,20 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
       }
       return json(400, { error: "Unbekannte Aktion." });
     }
+    if (p[1] === "push") {
+      const subscription = pruefeAbo(body.subscription);
+      if (!subscription) return json(400, { error: "Dein Browser hat keine gültige Anmeldung geschickt." });
+      const id = "admin-" + sha(subscription.endpoint);
+      await abos.setJSON(id, { id, admin: true, subscription, stadtteile: [], erstellt: new Date().toISOString() });
+      await pushSenden({ abos, zaehler }, [{ id, subscription }], { title: "Benachrichtigungen sind an", body: "Du bekommst ab jetzt Bescheid bei neuen Wäschern, Aufträgen und Bewertungen.", url: "/admin.html" }, senden).catch(() => {});
+      return json(200, { ok: true });
+    }
+    if (p[1] === "push-status" || p[1] === "push-aus") {
+      if (typeof body.endpoint !== "string") return json(400, { error: "Ungültige Anfrage." });
+      const id = "admin-" + sha(body.endpoint);
+      if (p[1] === "push-aus") { await abos.delete(id); return json(200, { ok: true }); }
+      return json(200, { aktiv: !!(await abos.get(id, { type: "json" })) });
+    }
     if (p[1] === "abmelden") {
       await zaehler.setJSON("admin", { ...admin, sitzungen: (admin.sitzungen || []).filter(h => h !== sha(body.sitzung)) });
       return json(200, { ok: true });
@@ -370,6 +396,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
     const id = randomUUID(), secret = neuerCode(), kurz = kurzcode();
     await auftraege.setJSON(id, { ...auftrag, id, kurz, erstellt: new Date().toISOString(), status: "offen", codeHash: sha(secret), waescherId: null });
     try { await benachrichtigen({ abos, zaehler }, auftrag, senden); } catch {} // Push darf eine Buchung nie verhindern
+    await adminInfo({ abos, zaehler }, `Neuer Auftrag: ${auftrag.stadtteil}`, `${(LEISTUNGEN[auftrag.leistung] || LEISTUNGEN.komplett).name}, ca. ${auftrag.kg} kg · ${datum(auftrag.termin)}, ${auftrag.zeitfenster} · ${eur(auftrag.preis)}`, senden);
     return json(201, { id, kurz, code: `${id}~${secret}`, preis: auftrag.preis });
   }
 
@@ -399,6 +426,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
     const id = randomUUID(), secret = neuerCode();
     await waescher.setJSON(id, { ...w, id, erstellt: new Date().toISOString(), codeHash: sha(secret), passwortHash: passwortHash(body.passwort) });
     await zaehler.setJSON(loginKey, { id });
+    await adminInfo({ abos, zaehler }, `Neuer Wäscher: ${w.name}`, `Holt ab in: ${w.stadtteile.join(", ")}${w.trockner ? " · mit Trockner" : ""}`, senden);
     return json(201, { id, code: `${id}~${secret}` });
   }
 
@@ -492,6 +520,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
         const feedback = [{ sterne, kommentar, datum: bewertung.datum }, ...(w.feedback || [])].slice(0, FEEDBACK_MAX);
         await waescher.setJSON(w.id, { ...w, bewertungen: { summe: b.summe + sterne, anzahl: b.anzahl + 1 }, feedback });
       }
+      await adminInfo({ abos, zaehler }, `Neue Bewertung: ${"★".repeat(sterne)}${"☆".repeat(5 - sterne)}`, `Für ${w?.name || "einen Wäscher"}${kommentar ? `: „${kommentar}“` : ""}`, senden);
       return json(200, { ok: true });
     }
     if (aktion === "stornieren") {

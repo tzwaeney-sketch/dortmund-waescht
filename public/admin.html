@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#14213a">
 <title>Admin · Dortmund wäscht</title>
 <link rel="icon" href="/icon-192.png">
+<link rel="manifest" href="/admin.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: operator dashboard — summary tiles first, then trend chart, then what needs attention, then full tables */
@@ -60,6 +62,9 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;fl
 label{font-weight:600;font-size:.9rem}
 input{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
 .err{color:var(--bad);font-size:.88rem;min-height:1.2em}
+
+.notify{flex-direction:row;justify-content:space-between;align-items:center;flex-wrap:wrap;border-color:var(--accent)}
+.notify.on{border-color:var(--ok);background:var(--ok-soft)}
 
 /* Kennzahlen */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
@@ -163,6 +168,14 @@ tr:last-child td{border-bottom:0}
       <p class="eyebrow">Übersicht</p>
       <h1 id="hello" style="margin-top:6px">Hallo Sven</h1>
     </div>
+
+    <section class="panel notify" id="notify" aria-labelledby="notifyTitle">
+      <div style="min-width:0">
+        <h2 id="notifyTitle">Bescheid bekommen</h2>
+        <p class="muted" id="notifyText">Push-Nachricht aufs Handy bei neuen Wäschern, Aufträgen und Bewertungen.</p>
+      </div>
+      <div class="row" id="notifyActions"></div>
+    </section>
 
     <div class="tiles" id="tiles"></div>
 
@@ -300,6 +313,7 @@ async function laden() {
     $("loginView").hidden = true; $("dash").hidden = false; $("topActions").hidden = false;
     $("stand").textContent = "Stand: " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
     render();
+    renderNotify();
   } catch (err) {
     if (err.status === 401) { store.del(); $("dash").hidden = true; $("topActions").hidden = true; start(); }
     else toast(err.message, "bad");
@@ -477,6 +491,56 @@ function renderWashers() {
       el("td", {}, el("div", { class: "row", style: "gap:6px" },
         w.gesperrtManuell ? aktion("Entsperren", "waescher-entsperren", w.id, "Entsperren?", false) : aktion("Sperren", "waescher-sperren", w.id, "Sperren?"),
         aktion("Löschen", "waescher-loeschen", w.id, "Profil löschen?"))))))));
+}
+
+// ===== Push-Benachrichtigungen für den Betreiber =====
+const pushOk = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const istIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const schluesselBytes = b64 => Uint8Array.from(atob((b64 + "=".repeat((4 - b64.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+async function aboHolen() {
+  if (!pushOk) return null;
+  try { const reg = await navigator.serviceWorker.getRegistration("/"); return reg ? await reg.pushManager.getSubscription() : null; } catch { return null; }
+}
+async function renderNotify() {
+  const box = $("notifyActions");
+  if (!pushOk) {
+    $("notifyText").textContent = istIOS
+      ? "Auf dem iPhone: Öffne diese Seite in Safari, tippe auf Teilen und dann auf „Zum Home-Bildschirm“. Öffne die Admin-Seite danach über das neue Symbol und aktiviere hier die Benachrichtigungen."
+      : "Dieser Browser kann keine Push-Nachrichten empfangen. Probier Chrome oder Firefox auf dem Handy.";
+    box.replaceChildren(); return;
+  }
+  const sub = await aboHolen();
+  let aktiv = false;
+  if (sub) { try { aktiv = (await call("POST", "admin/push-status", { sitzung: store.get(), endpoint: sub.endpoint })).aktiv; } catch {} }
+  $("notify").classList.toggle("on", aktiv);
+  $("notifyText").textContent = aktiv
+    ? "Auf diesem Gerät aktiv: Du bekommst Bescheid bei neuen Wäschern, Aufträgen und Bewertungen."
+    : "Push-Nachricht aufs Handy bei neuen Wäschern, Aufträgen und Bewertungen.";
+  if (aktiv) {
+    const aus = el("button", { class: "btn btn-ghost btn-sm", type: "button", text: "Ausschalten" });
+    aus.addEventListener("click", async () => {
+      busy(aus, true);
+      try { await call("POST", "admin/push-aus", { sitzung: store.get(), endpoint: sub.endpoint }); toast("Benachrichtigungen aus."); renderNotify(); }
+      catch (err) { toast(err.message, "bad"); busy(aus, false); }
+    });
+    box.replaceChildren(aus);
+  } else {
+    const an = el("button", { class: "btn btn-primary", type: "button", text: "Benachrichtigungen einschalten" });
+    an.addEventListener("click", async () => {
+      busy(an, true);
+      try {
+        if (await Notification.requestPermission() !== "granted") throw new Error("Benachrichtigungen sind blockiert. Erlaube sie in den Browser-Einstellungen für diese Seite.");
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        const { publicKey } = await call("GET", "push/schluessel");
+        const s = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: schluesselBytes(publicKey) });
+        await call("POST", "admin/push", { sitzung: store.get(), subscription: s.toJSON() });
+        toast("Eingeschaltet. Du solltest gleich eine Test-Nachricht bekommen.");
+        renderNotify();
+      } catch (err) { toast(err.message || "Das hat nicht geklappt.", "bad"); busy(an, false); }
+    });
+    box.replaceChildren(an);
+  }
 }
 
 start();
