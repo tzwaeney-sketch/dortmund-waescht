@@ -194,11 +194,25 @@ export async function benachrichtigen(stores, a, sender) {
   }, sender);
 }
 // Betreiber über Neuigkeiten informieren (neue Wäscher, Aufträge, Bewertungen)
-export async function adminInfo(stores, title, body, sender) {
+export async function adminInfo(stores, title, body, sender, mailer = mailSenden) {
   try {
     const liste = (await alle(stores.abos)).filter(x => x.admin);
     await pushSenden(stores, liste, { title, body, url: "/admin.html" }, sender);
   } catch {} // Benachrichtigungen dürfen nie eine Aktion verhindern
+  try {
+    const hook = (await stores.zaehler.get("admin", { type: "json" }))?.mailHook;
+    if (hook) await mailer(hook, title, body);
+  } catch {}
+}
+// E-Mail über das Google-Apps-Script des Betreibers verschicken (läuft in seinem Google-Konto)
+const MAIL_HOOK_MUSTER = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,}\/exec$/;
+export async function mailSenden(hook, titel, text) {
+  const res = await fetch(hook, {
+    method: "POST", headers: { "content-type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ titel, text, link: "https://dortmund-waescht.netlify.app/admin.html" }),
+    redirect: "follow", signal: AbortSignal.timeout(8000)
+  });
+  if (!res.ok) throw new Error("Mail-Skript antwortet mit Fehler " + res.status);
 }
 function pruefeAbo(sub) {
   if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string") return null;
@@ -307,7 +321,7 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
       const aboProStadtteil = {};
       for (const a of aboListe) if (!a.admin) for (const st of a.stadtteile) aboProStadtteil[st] = (aboProStadtteil[st] || 0) + 1;
       return json(200, {
-        heute: heute(), besuche, abos: aboListe.filter(a => !a.admin).length, aboProStadtteil,
+        heute: heute(), besuche, abos: aboListe.filter(a => !a.admin).length, aboProStadtteil, mailAktiv: !!admin.mailHook,
         auftraege: auftragsListe.sort((x, y) => y.erstellt.localeCompare(x.erstellt)).map(a => ({
           id: a.id, kurz: a.kurz, erstellt: a.erstellt, status: effektiv(a), vorname: a.vorname, whatsapp: a.whatsapp,
           stadtteil: a.stadtteil, kg: a.kg, express: a.express, transport: a.transport, leistung: a.leistung || "komplett", trockner: a.trockner ?? null, termin: a.termin, zeitfenster: a.zeitfenster,
@@ -352,6 +366,19 @@ export async function handle(req, ip, { auftraege, waescher, zaehler, abos }, se
       const id = "admin-" + sha(subscription.endpoint);
       await abos.setJSON(id, { id, admin: true, subscription, stadtteile: [], erstellt: new Date().toISOString() });
       await pushSenden({ abos, zaehler }, [{ id, subscription }], { title: "Benachrichtigungen sind an", body: "Du bekommst ab jetzt Bescheid bei neuen Wäschern, Aufträgen und Bewertungen.", url: "/admin.html" }, senden).catch(() => {});
+      return json(200, { ok: true });
+    }
+    if (p[1] === "mail") {
+      const url = typeof body.url === "string" ? body.url.trim() : "";
+      if (!MAIL_HOOK_MUSTER.test(url)) return json(400, { error: "Das sieht nicht nach einer Web-App-Adresse von Google Apps Script aus. Sie beginnt mit https://script.google.com/macros/s/ und endet mit /exec." });
+      try { await mailSenden(url, "Test: E-Mail-Benachrichtigung ist an", "Ab jetzt bekommst du eine Mail bei neuen Wäschern, Aufträgen und Bewertungen."); }
+      catch { return json(502, { error: "Die Test-Mail ging nicht raus. Prüfe, ob das Skript als Web-App für „Jeder“ bereitgestellt ist." }); }
+      await zaehler.setJSON("admin", { ...admin, mailHook: url });
+      return json(200, { ok: true });
+    }
+    if (p[1] === "mail-aus") {
+      const { mailHook, ...rest } = admin;
+      await zaehler.setJSON("admin", rest);
       return json(200, { ok: true });
     }
     if (p[1] === "push-status" || p[1] === "push-aus") {

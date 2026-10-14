@@ -63,6 +63,9 @@ label{font-weight:600;font-size:.9rem}
 input{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
 .err{color:var(--bad);font-size:.88rem;min-height:1.2em}
 
+.steps-list{margin:10px 0 4px;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.code{font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;white-space:pre;margin:8px 0}
+.pill.on{color:var(--ok);background:var(--ok-soft)}
 .notify{flex-direction:row;justify-content:space-between;align-items:center;flex-wrap:wrap;border-color:var(--accent)}
 .notify.on{border-color:var(--ok);background:var(--ok-soft)}
 
@@ -175,6 +178,42 @@ tr:last-child td{border-bottom:0}
         <p class="muted" id="notifyText">Push-Nachricht aufs Handy bei neuen Wäschern, Aufträgen und Bewertungen.</p>
       </div>
       <div class="row" id="notifyActions"></div>
+    </section>
+
+    <section class="panel" id="mailPanel" aria-labelledby="mailTitle">
+      <div class="panel-head">
+        <h2 id="mailTitle">E-Mail bei Neuigkeiten</h2>
+        <span class="pill" id="mailPill">Aus</span>
+      </div>
+      <p class="muted" id="mailText">Eine Mail bei neuen Wäschern, Aufträgen und Bewertungen. Sie geht über dein eigenes Google-Konto raus.</p>
+      <details id="mailHowto">
+        <summary style="cursor:pointer;font-weight:600">So richtest du es ein (5 Minuten)</summary>
+        <ol class="steps-list">
+          <li>Öffne <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com</a> und leg ein neues Projekt an, z. B. „Dortmund wäscht Mail“.</li>
+          <li>Lösch den vorhandenen Code und füge diesen ein. Trag bei <b>EMPFAENGER</b> deine Mail-Adresse ein.
+            <pre class="code" id="gasCode">const EMPFAENGER = "albrecht.sven89@gmail.com";
+
+function doPost(e) {
+  const d = JSON.parse(e.postData.contents || "{}");
+  MailApp.sendEmail({
+    to: EMPFAENGER,
+    subject: "Dortmund wäscht: " + (d.titel || "Neuigkeit"),
+    body: (d.text || "") + "\n\nZur Admin-Seite: " + (d.link || "")
+  });
+  return ContentService.createTextOutput("ok");
+}</pre>
+            <button class="btn btn-ghost btn-sm" type="button" id="gasCopy">Code kopieren</button>
+          </li>
+          <li>Oben rechts auf <b>Bereitstellen → Neue Bereitstellung</b>. Als Typ <b>Web-App</b> wählen. „Ausführen als“: <b>Ich</b>. „Zugriff“: <b>Jeder</b>.</li>
+          <li>Auf <b>Bereitstellen</b> klicken und den Zugriff auf dein Google-Konto erlauben. Google warnt dabei, weil das Skript nicht geprüft ist. Das ist bei eigenen Skripten normal: „Erweitert“ und dann „Weiter zu …“.</li>
+          <li>Die <b>Web-App-URL</b> kopieren (endet mit <code>/exec</code>) und hier unten einfügen.</li>
+        </ol>
+      </details>
+      <form id="mailForm" class="row" novalidate>
+        <input id="mailUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1 1 320px" autocomplete="off">
+        <button class="btn btn-primary" type="submit">Speichern &amp; Test-Mail senden</button>
+        <button class="btn btn-ghost" type="button" id="mailOff" hidden>Ausschalten</button>
+      </form>
     </section>
 
     <div class="tiles" id="tiles"></div>
@@ -321,7 +360,37 @@ async function laden() {
 }
 $("reload").addEventListener("click", laden);
 
-function render() { renderTiles(); renderChart(); renderSources(); renderTodo(); renderPush(); renderOrders(); renderWashers(); }
+function renderMail() {
+  $("mailPill").textContent = D.mailAktiv ? "An" : "Aus";
+  $("mailPill").classList.toggle("on", D.mailAktiv);
+  $("mailOff").hidden = !D.mailAktiv;
+  $("mailText").textContent = D.mailAktiv
+    ? "Aktiv: Du bekommst eine Mail bei neuen Wäschern, Aufträgen und Bewertungen. Für eine neue Skript-Adresse einfach unten einfügen."
+    : "Eine Mail bei neuen Wäschern, Aufträgen und Bewertungen. Sie geht über dein eigenes Google-Konto raus.";
+  $("mailHowto").open = !D.mailAktiv && !$("mailHowto").dataset.touched;
+}
+$("mailHowto").addEventListener("toggle", () => { $("mailHowto").dataset.touched = "1"; });
+$("gasCopy").addEventListener("click", () => {
+  try { navigator.clipboard.writeText($("gasCode").textContent).then(() => toast("Code kopiert."), () => toast("Bitte den Code markieren und kopieren.", "bad")); }
+  catch { toast("Bitte den Code markieren und kopieren.", "bad"); }
+});
+$("mailForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = e.submitter; busy(btn, true);
+  try {
+    await call("POST", "admin/mail", { sitzung: store.get(), url: $("mailUrl").value });
+    $("mailUrl").value = ""; toast("Gespeichert. Schau in dein Postfach, die Test-Mail ist unterwegs."); laden();
+  } catch (err) { toast(err.message, "bad"); }
+  finally { busy(btn, false); }
+});
+$("mailOff").addEventListener("click", async () => {
+  busy($("mailOff"), true);
+  try { await call("POST", "admin/mail-aus", { sitzung: store.get() }); toast("E-Mails ausgeschaltet."); laden(); }
+  catch (err) { toast(err.message, "bad"); }
+  finally { busy($("mailOff"), false); }
+});
+
+function render() { renderMail(); renderTiles(); renderChart(); renderSources(); renderTodo(); renderPush(); renderOrders(); renderWashers(); }
 
 function renderTiles() {
   const b = D.besuche, heute = b[b.length - 1].gesamt, woche = b.slice(-7).reduce((s, t) => s + t.gesamt, 0);

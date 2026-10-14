@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1f4fd1">
 <title>Dortmund wäscht</title>
-<meta name="description" content="Wäsche waschen lassen in Dortmund: Ein Wäscher aus deinem Viertel holt ab, wäscht, trocknet, faltet und bringt zurück. Ab 2,50 € pro kg.">
+<meta name="description" content="Wäsche waschen lassen in Dortmund: Ein Wäscher aus deinem Viertel holt ab, wäscht und bringt zurück. Ab 1,50 € pro kg.">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -314,7 +314,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
             <path class="m-shine" d="M70 92a36 36 0 0 1 22-20"/>
           </svg>
         </div>
-        <p class="door-sub">Abgeholt, gewaschen, gefaltet. Ab <b id="startPreis">2,50 €</b> pro kg.</p>
+        <p class="door-sub">Ab <b id="startPreisWaschen">1,50 €</b> pro kg. Mit Trocknen und Falten <b id="startPreis">2,50 €</b>.</p>
         <span class="btn btn-sun">Wäsche abgeben <span aria-hidden="true">→</span></span>
       </a>
       <div class="door door-money">
@@ -1239,6 +1239,7 @@ function updateMoney() {
 }
 $("moneyRange").addEventListener("input", updateMoney);
 $("startPreis").textContent = eur(LEISTUNGEN.komplett.kg);
+$("startPreisWaschen").textContent = eur(LEISTUNGEN.waschen.kg);
 $("moneyFine").textContent = `Beispiel: 8 kg mit Abholung = ${eur(preisFuer(8, false, true))}, abzüglich ca. ${eur(KOSTEN_PRO_LADUNG)} für Strom, Wasser und Waschmittel.`;
 updateMoney();
 
