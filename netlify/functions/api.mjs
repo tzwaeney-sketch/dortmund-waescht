@@ -28,7 +28,7 @@ const ABOS_PRO_TAG = 10;         // Push-Anmeldungen pro Internetanschluss
 // Einmal-Code zum ersten Einrichten der Admin-Seite (nur der Hash steht hier, der Code selbst nicht)
 const ADMIN_SETUP_HASH = "cab63a29b99f68d237db2c7e71255f801086687ebf80d863d8c68d94b23fc8f8";
 const ADMIN_FEHLER_MAX = 5;      // falsche Admin-Passwörter pro Stunde
-const QUELLEN = ["tiktok", "instagram", "facebook", "whatsapp", "google", "direkt", "andere"];
+const QUELLEN = ["tiktok", "instagram", "facebook", "whatsapp", "google", "kleinanzeigen", "aushang", "direkt", "andere"];
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
