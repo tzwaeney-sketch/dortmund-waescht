@@ -3,69 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1f4fd1">
+<meta name="theme-color" content="#e6dbc7">
 <title>Dortmund wäscht</title>
 <meta name="description" content="Wäsche waschen lassen in Dortmund: Ein Wäscher aus deinem Viertel holt ab, wäscht und bringt zurück. Ab 1,50 € pro kg.">
+<script>document.documentElement.classList.add("js");setTimeout(function(){if(!window.__rvOK)document.documentElement.classList.remove("js")},3000)</script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap">
 <style>
-/* Layout: order-first service page (Wäsche abgeben) with a job board for Wäscher; price per kg is the hero number, like a care label */
+/* Idee: Der Name ist der Satz. "Dortmund wäscht" steht groß über zwei Farbflächen, Sand und Kobalt,
+   und ein Bild sitzt im Satz, wo ein Wort stehen könnte. Jeder Abschnitt ist eine eigene Farbfläche. */
 :root{
-  --bg:#f3f6fa; --surface:#ffffff; --ink:#14213a; --muted:#56637a; --line:#d8e0eb;
-  --accent:#1f4fd1; --accent-ink:#ffffff; --sun:#ffd23f; --sun-ink:#14213a; --soft:#e4ecfb;
-  --ok:#1d7a4a; --ok-soft:#e1f3e8; --bad:#c62828;
-  --clean-bg:#e4ecfb; --money-bg:#14213a; --money-ink:#f3f6fa;
-  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
-  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bg:#e6dbc7; --surface:#ddd0b9; --field:#f2ebdf; --ink:#062b8a; --muted:#2a4793; --line:#c4b598;
+  --accent:#062b8a; --accent-ink:#e6dbc7; --sun:#062b8a; --sun-ink:#e6dbc7; --soft:#ddd0b9;
+  --deep:#062b8a; --on-deep:#e6dbc7; --on-deep-soft:#b9c3e0;
+  --ok:#1d6b45; --ok-soft:#d3dcc0; --bad:#b3261e;
+  --display:"Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --body:"Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --g:clamp(16px,2.6vw,32px);
+  --step-small:clamp(.8125rem,.79rem + .1vw,.875rem);
+  --step-body:clamp(1.0625rem,1rem + .25vw,1.1875rem);
+  --step-lead:clamp(1.25rem,1.1rem + .7vw,1.625rem);
+  --step-head:clamp(2.2rem,1.3rem + 3.6vw,4.4rem);
+  --step-hero:clamp(4.6rem,15vw,13.5rem);
+  --step-big:clamp(3rem,8.4vw,8.4rem);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0e1626; --surface:#16213a; --ink:#e8eef9; --muted:#9fb0cb; --line:#2a3958;
-  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --ok-soft:#143826; --bad:#ff8a80; --clean-bg:#16213a; --money-bg:#1f2f55; --money-ink:#f3f6fa; color-scheme:dark}}
+  --bg:#0a1b44; --surface:#10265a; --field:#0d2152; --ink:#e6dbc7; --muted:#b4ab9b; --line:#2b3f73;
+  --accent:#e6dbc7; --accent-ink:#062b8a; --sun:#e6dbc7; --sun-ink:#062b8a; --soft:#10265a;
+  --deep:#e6dbc7; --on-deep:#062b8a; --on-deep-soft:#3a5aa8;
+  --ok:#8fd3a8; --ok-soft:#173a2a; --bad:#ff9a8f; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0e1626; --surface:#16213a; --ink:#e8eef9; --muted:#9fb0cb; --line:#2a3958;
-  --accent:#7ea2ff; --accent-ink:#0e1626; --soft:#1c2b4b; --ok:#5fd394; --ok-soft:#143826; --bad:#ff8a80; --clean-bg:#16213a; --money-bg:#1f2f55; --money-ink:#f3f6fa; color-scheme:dark}
+  --bg:#0a1b44; --surface:#10265a; --field:#0d2152; --ink:#e6dbc7; --muted:#b4ab9b; --line:#2b3f73;
+  --accent:#e6dbc7; --accent-ink:#062b8a; --sun:#e6dbc7; --sun-ink:#062b8a; --soft:#10265a;
+  --deep:#e6dbc7; --on-deep:#062b8a; --on-deep-soft:#3a5aa8;
+  --ok:#8fd3a8; --ok-soft:#173a2a; --bad:#ff9a8f; color-scheme:dark}
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);margin:0;padding-inline:16px;-webkit-font-smoothing:antialiased}
-/* feines Korn, damit die Fläche nicht steril wirkt */
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.wrap{position:relative;z-index:1}
-html{scroll-behavior:smooth}
-.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;display:flex;flex-direction:column;gap:36px}
-h1,h2,h3{font-family:var(--display);line-height:1.1;text-wrap:balance;margin:0}
-h2{font-size:clamp(1.7rem,4vw,2.4rem);font-weight:800}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{background:var(--bg);color:var(--ink);font:400 var(--step-body)/1.5 var(--body);letter-spacing:-.005em;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{display:flex;flex-direction:column;min-height:100dvh}
+.view:not(#view-start){width:100%;max-width:calc(1080px + 2 * var(--g));margin:0 auto;padding:40px var(--g) 120px}
+h1,h2,h3{font-family:var(--display);font-weight:500;line-height:1;letter-spacing:-.035em;text-wrap:balance;margin:0}
+h2{font-size:var(--step-head)}
 p{margin:0}
 a{color:var(--accent)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
-.eyebrow{font-size:.9rem;font-weight:600;letter-spacing:.01em;color:var(--muted);display:flex;align-items:center;gap:10px}
-.eyebrow::before{content:"";width:18px;height:2px;border-radius:2px;background:currentColor;opacity:.6;flex:none}
+.ptitle{font-size:var(--step-body);font-weight:600;color:var(--ink)}
 p,li{text-wrap:pretty}
 .muted{color:var(--muted)}
 .view{display:flex;flex-direction:column;gap:32px}
-.head{display:flex;flex-direction:column;gap:10px;max-width:62ch}
+.head{display:flex;flex-direction:column;gap:14px;max-width:62ch}
 
-/* nav */
-nav.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
-.logo{font-family:var(--display);font-weight:800;font-size:1.25rem;display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none}
-.drum{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;flex:none}
-.drum i{width:16px;height:16px;border-radius:50%;border:3px solid var(--accent-ink)}
-.tabs{display:flex;gap:4px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:4px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+/* Kopfzeile: Wortmarke, vier schlichte Links. Sie nimmt die Farbe des Abschnitts darunter an. */
+nav.top{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:8px 20px;flex-wrap:wrap;padding:14px var(--g);background:var(--hdr-bg,var(--bg));color:var(--hdr-ink,var(--ink));transition:background-color .3s,color .3s}
+nav.top[data-on="deep"]{--hdr-bg:var(--deep);--hdr-ink:var(--on-deep)}
+nav.top[data-on="surface"]{--hdr-bg:var(--surface)}
+.logo{font-family:var(--display);font-weight:600;font-size:var(--step-body);letter-spacing:-.03em;color:inherit;text-decoration:none;white-space:nowrap}
+.drum{display:none}
+.tabs{display:flex;gap:4px 22px;overflow-x:auto;max-width:100%;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tabs button{white-space:nowrap;flex:none;font:600 .92rem var(--body);border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer}
-.tabs button{transition:background-color .2s,color .2s}
-.tabs button:hover{color:var(--ink);background:var(--soft)}
-.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
-.banner{background:var(--soft);border-radius:12px;padding:12px 16px;font-size:.92rem}
+.tabs button{white-space:nowrap;flex:none;font:500 var(--step-small) var(--body);border:0;background:transparent;color:inherit;opacity:.72;padding:10px 0;cursor:pointer;text-decoration:underline 2px transparent;text-underline-offset:7px;transition:opacity .2s,text-decoration-color .2s}
+.tabs button:hover{opacity:1}
+.tabs button[aria-selected="true"]{opacity:1;text-decoration-color:currentColor}
+.banner{background:var(--surface);padding:12px var(--g);font-size:var(--step-small)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 1rem var(--body);padding:12px 20px;border-radius:999px;border:0;cursor:pointer;text-decoration:none;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background-color .2s,filter .2s;text-align:center}
-.btn:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 10px 22px -14px rgba(20,33,58,.55)}
-.btn:active{transform:translateY(1px) scale(.98);box-shadow:none;filter:none}
-.btn-ghost:hover,.btn-danger:hover{box-shadow:none;background:var(--soft)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font:500 var(--step-body) var(--body);padding:15px 24px;min-height:52px;border-radius:0;border:0;cursor:pointer;text-decoration:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s,background-color .2s,color .2s;text-align:center}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn .arr{display:inline-block;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.btn:hover .arr{transform:translateX(4px)}
+.btn-ghost:hover,.btn-danger:hover{background:var(--surface)}
 .field.row-actions{flex-direction:row}
 .btn:disabled{opacity:.6;cursor:wait;transform:none}
 .btn-primary{background:var(--accent);color:var(--accent-ink)}
@@ -73,27 +85,7 @@ nav.top{display:flex;justify-content:space-between;align-items:center;gap:14px;f
 .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
 .btn-ok{background:var(--ok);color:var(--bg)}
 .btn-danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
-.btn-sm{padding:8px 14px;font-size:.9rem}
-
-/* hero */
-.hero{display:grid;grid-template-columns:1.3fr .8fr;gap:36px;align-items:center}
-.hero>*{min-width:0}
-.hero h1{font-size:clamp(2.2rem,6.5vw,4rem);font-weight:800;letter-spacing:-.02em}
-.hero h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--sun) 62%);padding-inline:.06em}
-.hero .lead{font-size:1.12rem;color:var(--muted);margin-top:16px;max-width:48ch}
-.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
-.tag{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:26px 24px 20px;position:relative;transform:rotate(1.5deg);box-shadow:0 18px 40px -24px rgba(20,33,58,.45);display:flex;flex-direction:column;gap:6px;text-align:center}
-.tag::before{content:"";position:absolute;top:14px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg);border:1.5px solid var(--line)}
-.tag .eyebrow{margin-top:12px}
-.tag .big{font-family:var(--display);font-weight:800;font-size:3.6rem;line-height:1;font-variant-numeric:tabular-nums}
-.tag .big small{font-size:1.1rem;font-weight:600;color:var(--muted)}
-.tag ul{list-style:none;margin:12px 0 0;padding:14px 0 0;border-top:1.5px dashed var(--line);display:flex;flex-direction:column;gap:4px;font-size:.92rem}
-
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.step{display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:3px solid var(--ink)}
-.step .n{font-family:var(--display);font-weight:800;color:var(--accent)}
-.step h3{font-size:1.2rem}
-.step p{color:var(--muted)}
+.btn-sm{padding:8px 14px;font-size:.9rem;min-height:40px}
 
 /* forms */
 .formwrap{display:grid;grid-template-columns:1.3fr .8fr;gap:28px;align-items:start}
@@ -103,7 +95,7 @@ form{background:var(--surface);border:1.5px solid var(--line);border-radius:16px
 .field.full{grid-column:1/-1}
 label,.lbl{font-weight:600;font-size:.92rem}
 .hint{font-size:.82rem;color:var(--muted);font-weight:400}
-input[type=text],input[type=tel],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
+input[type=text],input[type=tel],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
 textarea{resize:vertical;min-height:80px}
 .choice label{display:flex;flex-direction:column;gap:2px;border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;position:relative}
 .choice input{position:absolute;opacity:0;pointer-events:none}
@@ -146,59 +138,125 @@ input[type=range]{width:100%;accent-color:var(--accent);height:32px;margin:0;cur
 input.invalid{border-color:var(--bad)}
 
 
-/* Startseite: zwei Türen */
-.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-.door{border-radius:28px;padding:32px 30px;display:flex;flex-direction:column;gap:16px;min-width:0;text-decoration:none;position:relative;overflow:hidden}
-.door h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:800;letter-spacing:-.025em;line-height:1.02}
-.door .eyebrow{color:inherit;opacity:.75}
-.door .btn{align-self:flex-start;margin-top:auto;font-size:1.05rem;padding:14px 24px}
-.door-clean{background:var(--clean-bg);color:var(--ink);border:1.5px solid var(--line);transition:transform .2s, box-shadow .2s}
-.door-clean:hover{transform:translateY(-3px);box-shadow:0 24px 50px -30px rgba(31,79,209,.6)}
-.door-sub{font-size:1.1rem;color:var(--muted)}
-.door-sub b{white-space:nowrap}
-.door-money{background:var(--money-bg);color:var(--money-ink)}
-.money{font-family:var(--display);font-weight:800;line-height:.95;color:var(--sun);font-size:clamp(3.6rem,10vw,5.6rem);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
-.money small{font-size:1.1rem;font-weight:600;color:var(--money-ink);opacity:.8;letter-spacing:0}
-.money-ctrl{display:flex;flex-direction:column;gap:6px}
-.money-ctrl label{font-weight:600}
-.money-ctrl input{accent-color:var(--sun)}
-.fine{font-size:.82rem;opacity:.7}
-.machine{width:min(220px,60%);align-self:center;margin-block:4px}
-.machine svg{display:block;width:100%;height:auto}
-.m-body{fill:var(--surface);stroke:var(--line);stroke-width:3}
-.m-panel{fill:var(--soft)}
-.m-knob{fill:var(--accent)}
-.m-led{fill:var(--sun)}
-.m-ring{fill:var(--soft);stroke:var(--accent);stroke-width:8}
-.m-glass{fill:#bcd3ff}
-.m-spin{transform-origin:100px 114px;animation:drumspin 4s linear infinite}
-.c1{fill:var(--accent)} .c2{fill:var(--sun)} .c3{fill:#ff8fa3} .c4{fill:#ffffff}
-.m-bubbles circle{fill:#ffffff;opacity:.85;animation:bubble 2.4s ease-in infinite}
-.m-bubbles circle:nth-child(2){animation-delay:.8s} .m-bubbles circle:nth-child(3){animation-delay:1.6s}
-.m-shine{fill:none;stroke:#ffffff;stroke-width:4;stroke-linecap:round;opacity:.7}
-@keyframes drumspin{to{transform:rotate(360deg)}}
-@keyframes bubble{0%{transform:translateY(0);opacity:0}30%{opacity:.9}100%{transform:translateY(-40px);opacity:0}}
-.strip{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:center;color:var(--muted);font-weight:600;font-size:.92rem}
-.strip li{display:flex;align-items:center;gap:8px}
-.strip li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
-.strip li#heroRating::before{display:none}
-@media (max-width:820px){ .split{grid-template-columns:1fr} .door{padding:26px 22px;border-radius:24px} }
-/* So läuft's: Zeitleiste statt Kartenreihe */
-.flow-wrap{display:flex;flex-direction:column;gap:28px;padding-top:40px;border-top:1.5px dashed var(--line);margin-top:8px}
-.flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;counter-reset:none}
-.flow li{position:relative;padding:44px 22px 0 0;display:flex;flex-direction:column;gap:8px;min-width:0}
-.flow li::before{content:"";position:absolute;top:14px;left:0;right:0;height:2px;background:var(--line)}
-.flow li::after{content:"";position:absolute;top:8px;left:0;width:14px;height:14px;border-radius:50%;background:var(--bg);border:3px solid var(--accent)}
-.flow li:last-child::after{background:var(--accent)}
-.flow .n{font-family:var(--display);font-weight:800;font-size:.95rem;color:var(--accent);font-variant-numeric:tabular-nums}
-.flow h3{font-size:1.35rem;letter-spacing:-.01em}
-.flow p{color:var(--muted);max-width:30ch}
+/* ===== Startseite ===== */
+.st{--cols:12;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--g);padding-inline:var(--g)}
+.st>*{min-width:0}
+.f-bg{background:var(--bg);color:var(--ink)}
+.f-surface{background:var(--surface);color:var(--ink)}
+.f-deep{background:var(--deep);color:var(--on-deep);--muted:var(--on-deep-soft)}
+.f-deep a{color:inherit}
+.btn-invert{background:var(--on-deep);color:var(--deep)}
+.big{font-size:var(--step-head)}
+.lead{font-size:var(--step-lead);line-height:1.3;letter-spacing:-.015em;max-width:34ch}
+.small{font-size:var(--step-small);line-height:1.45}
+#view-start{gap:0}
+#view-start figure{margin:0}
+#view-start img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* Held: der Name als Satz über zwei Flächen */
+.hero-h{font-size:var(--step-hero);line-height:.86;letter-spacing:-.055em;font-weight:500;margin:0}
+.hl{display:block;padding-inline:var(--g)}
+.hl-1{background:var(--bg);color:var(--ink);padding-top:clamp(56px,16svh,190px);padding-bottom:.06em}
+.hl-2{background:var(--deep);color:var(--on-deep);padding-top:.12em;white-space:nowrap}
+.slot{display:inline-block;width:2.5em;height:.74em;vertical-align:baseline;overflow:hidden;margin-left:.08em;background:var(--on-deep-soft)}
+.slot img{animation:drift 14s ease-in-out infinite alternate;transform-origin:30% 60%}
+@keyframes drift{from{transform:scale(1.04) translateX(0)}to{transform:scale(1.16) translateX(-4%)}}
+.hero-foot{padding-block:clamp(36px,7vh,80px) clamp(48px,9vh,110px);align-items:end;row-gap:28px}
+.hero-foot .lead{grid-column:1/8}
+.hero-foot .act{grid-column:9/13;justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:14px}
+.hero-foot b{font-weight:600;white-space:nowrap}
+#heroRating{list-style:none;font-size:var(--step-small)}
+
+/* Das Bild aus dem Satz, groß */
+.band{height:clamp(300px,62vh,640px);overflow:hidden;background:var(--deep)}
+.band img{transform:scale(1.06);transition:transform 1.4s cubic-bezier(.2,.8,.2,1)}
+.band.in img{transform:scale(1)}
+
+/* Ablauf als Treppe */
+.s-steps{padding-block:clamp(110px,16vh,200px);grid-auto-rows:auto;row-gap:clamp(40px,5vw,60px)}
+.s-steps ol{display:contents;list-style:none}
+.s-steps li{grid-column:var(--c)/13;display:flex;flex-direction:column;gap:12px}
+.s-steps li:nth-child(1){--c:1;grid-row:1}
+.s-steps li:nth-child(2){--c:3;grid-row:2}
+.s-steps li:nth-child(3){--c:5;grid-row:3}
+.s-steps li:nth-child(4){--c:7;grid-row:4}
+.s-steps h2{font-size:var(--step-head);line-height:1}
+.s-steps li p{max-width:34ch}
+.s-steps figure{grid-column:1/5;grid-row:3/5;align-self:end;aspect-ratio:4/5}
+
+/* Preis als Satz, mit Regler */
+.s-price{padding-block:clamp(100px,14vh,170px);row-gap:40px;min-height:80svh;align-content:center}
+.s-price h2{grid-column:1/13;font-size:var(--step-big);line-height:.95;letter-spacing:-.05em}
+.pblock{display:inline-block;background:var(--on-deep);color:var(--deep);padding:0 .15em;font-variant-numeric:tabular-nums}
+.calc{grid-column:1/8;display:flex;flex-direction:column;gap:22px}
+.calc input[type=range]{accent-color:var(--on-deep);height:36px}
+.segs{display:flex;flex-wrap:wrap;gap:8px}
+.seg{position:relative}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span,.pchip{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;font:500 var(--step-small) var(--body);color:var(--on-deep);background:transparent;border:0;cursor:pointer;box-shadow:inset 0 0 0 2px var(--on-deep-soft);transition:background-color .2s,color .2s,transform .2s}
+.seg span:hover,.pchip:hover{transform:translateY(-1px)}
+.seg input:checked+span,.pchip[aria-pressed="true"]{background:var(--on-deep);color:var(--deep);box-shadow:none}
+.seg input:focus-visible+span{outline:3px solid var(--on-deep);outline-offset:2px}
+.price-note{grid-column:1/8;max-width:46ch}
+.s-price .go{grid-column:9/13;justify-self:end;align-self:end}
+.drum-vid{grid-column:9/13;grid-row:2/3;align-self:start;aspect-ratio:4/5;overflow:hidden;background:var(--on-deep-soft)}
+.drum-vid video{display:block;width:100%;height:100%;object-fit:cover}
+
+/* Alle Preise: Satz links, Tabelle rechts */
+.s-table{padding-block:clamp(110px,16vh,200px);row-gap:clamp(56px,7vw,96px)}
+.s-table h2{grid-column:1/13;padding-left:3vw}
+.s-table figure{grid-column:1/5;grid-row:2;align-self:end;aspect-ratio:4/5}
+.ptable{grid-column:7/13;grid-row:2;border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.ptable th{font-weight:500;text-align:left;padding:0 16px 22px 0;vertical-align:top}
+.ptable td{padding:0 0 22px;vertical-align:top;color:var(--muted)}
+.ptable td:last-child{text-align:right;color:var(--ink);font-weight:500;white-space:nowrap;padding-left:16px}
+.ptable tr.gap>*{padding-top:30px}
+
+/* Wäscher werden: die Idee umgedreht */
+.s-cta{min-height:90svh;padding-block:clamp(90px,13vh,150px) clamp(48px,7vh,72px);grid-template-rows:1fr auto;row-gap:56px}
+.s-cta h2{grid-column:1/13;font-size:var(--step-big);line-height:.9;letter-spacing:-.055em;align-self:start}
+.earn{grid-column:1/7;display:flex;flex-direction:column;gap:14px;align-self:end}
+.money{font-family:var(--display);font-weight:500;font-size:var(--step-head);line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.money small{font-size:var(--step-body);letter-spacing:0;color:var(--muted)}
+.earn input[type=range]{accent-color:var(--on-deep);height:36px;width:100%}
+.earn label{font-weight:500}
+.s-cta .go{grid-column:10/13;justify-self:end;align-self:end}
+
+/* Fragen: groß links, Antworten daneben */
+.s-faq{padding-block:clamp(110px,16vh,200px);row-gap:clamp(56px,6vw,84px)}
+.s-faq .q{grid-column:1/7;font-size:var(--step-lead);line-height:1.15;letter-spacing:-.02em}
+.s-faq .q.h{color:var(--muted)}
+.s-faq .a{grid-column:8/13;max-width:42ch;padding-top:.3em}
+.s-faq figure{grid-column:1/6;aspect-ratio:16/10}
+
+/* Auftauchen beim Scrollen */
+.js .rv{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.8,.2,1),transform .7s cubic-bezier(.2,.8,.2,1);transition-delay:var(--d,0ms)}
+.js .rv.in{opacity:1;transform:none}
+
 @media (max-width:820px){
-  .flow{grid-template-columns:1fr;gap:26px}
-  .flow li{padding:0 0 0 34px}
-  .flow li::before{top:22px;bottom:-30px;left:6px;right:auto;width:2px;height:auto}
-  .flow li:last-child::before{display:none}
-  .flow li::after{top:4px}
+  .hero-foot .lead,.hero-foot .act,.calc,.price-note,.s-price .go,.earn,.s-cta .go,.s-faq .q,.s-faq .a,.ptable,.s-table figure,.s-faq figure{grid-column:1/-1}
+  .hero-foot .act{justify-self:start;align-items:flex-start}
+  .slot{width:1.7em}
+  .s-steps li:nth-child(n){grid-column:1/-1;padding-left:calc(var(--i) * 6vw)}
+  .s-steps li:nth-child(1){--i:0}.s-steps li:nth-child(2){--i:1}.s-steps li:nth-child(3){--i:2}.s-steps li:nth-child(4){--i:3}
+  .s-steps h2{font-size:8.4vw}
+  .s-steps figure{grid-column:4/-1;grid-row:5}
+  .s-price h2{font-size:11vw}
+  .s-price .go,.s-cta .go{justify-self:stretch}
+  .s-table h2{padding-left:0}
+  .s-table figure{grid-row:3;grid-column:6/-1}
+  .ptable{grid-row:2}
+  .s-cta h2{font-size:12.4vw}
+  .drum-vid{grid-row:auto;grid-column:4/-1}
+  nav.top{position:static}
+  .tabs{flex-wrap:wrap;gap:0 18px;overflow:visible}
+  .ptable tr{display:grid;grid-template-columns:1fr auto;column-gap:16px;padding-bottom:20px}
+  .ptable tr.gap{padding-top:22px}
+  .ptable th,.ptable td,.ptable tr.gap>*{padding:0}
+  .ptable td:nth-child(2){grid-row:2;grid-column:1}
+  .ptable td:last-child{grid-row:1;grid-column:2}
+  .s-faq .a{padding-top:0;margin-top:-40px}
+  .s-faq span.a{display:none}
 }
 /* Ladezustand & Toasts */
 .btn[aria-busy="true"]::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .7s linear infinite}
@@ -287,10 +345,17 @@ input[type=checkbox]{width:20px;height:20px;margin-top:2px;flex:none;accent-colo
 .success{border:1.5px solid var(--ok);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
 .success h3{color:var(--ok)}
 
-footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.88rem;border-top:1px solid var(--line);padding-top:22px}
-footer p{max-width:60ch}
-footer .legal{display:flex;gap:16px;flex-wrap:wrap}
-footer .legal a{color:var(--muted)}
+footer{overflow:hidden;margin-top:auto;padding-top:clamp(90px,13vh,150px)}
+.foot-top{row-gap:40px;align-items:start}
+.invite{grid-column:1/8;display:flex;flex-direction:column;align-items:flex-start;gap:28px}
+.invite .big{font-size:var(--step-head);font-family:var(--display);font-weight:500;line-height:1;letter-spacing:-.04em;max-width:12ch}
+footer .legal{grid-column:10/13;display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+footer .legal a{color:inherit;text-decoration:underline 1.5px;text-underline-offset:4px}
+.foot-fine{margin-top:clamp(64px,10vh,120px);row-gap:12px;color:var(--on-deep-soft)}
+.foot-fine p{grid-column:1/7;max-width:60ch}
+.foot-fine .credits{grid-column:8/13}
+.wordmark{font-family:var(--display);font-weight:600;font-size:clamp(5rem,27vw,30rem);letter-spacing:-.06em;line-height:.8;white-space:nowrap;margin:24px 0 0 calc(var(--g) - .04em);transform:translateY(22%);user-select:none}
+@media (max-width:820px){ .invite,footer .legal,.foot-fine p,.foot-fine .credits{grid-column:1/-1} footer .legal{flex-direction:row;flex-wrap:wrap;gap:8px 18px;align-items:flex-start} .wordmark{font-size:34vw} }
 
 @media (max-width:860px){
   .hero,.formwrap{grid-template-columns:1fr}
@@ -298,7 +363,7 @@ footer .legal a{color:var(--muted)}
   .steps{grid-template-columns:1fr}
   .summary{position:static}
 }
-input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
+input[type=password]{font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;width:100%}
 @media (max-width:860px){ .alert{grid-template-columns:1fr} }
 @media (max-width:560px){ form,.login{grid-template-columns:1fr;padding:18px} .choice,.tips{grid-template-columns:1fr} .wrap{gap:28px} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
@@ -320,68 +385,92 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
 
   <!-- START -->
   <section class="view" id="view-start" aria-label="Start">
-    <div class="split">
-      <a class="door door-clean" href="#bestellen">
-        <p class="eyebrow">Für deine Wäsche</p>
-        <h1>So sauber kann deine Wäsche sein.</h1>
-        <div class="machine" aria-hidden="true">
-          <svg viewBox="0 0 200 200">
-            <rect class="m-body" x="20" y="10" width="160" height="180" rx="22"/>
-            <rect class="m-panel" x="20" y="10" width="160" height="34" rx="22"/>
-            <rect class="m-panel" x="20" y="30" width="160" height="14"/>
-            <circle class="m-knob" cx="150" cy="27" r="7"/>
-            <rect class="m-led" x="40" y="22" width="44" height="10" rx="5"/>
-            <circle class="m-ring" cx="100" cy="114" r="58"/>
-            <circle class="m-glass" cx="100" cy="114" r="46"/>
-            <g class="m-spin">
-              <path class="c1" d="M72 100c10-14 30-16 40-4-6 12-26 18-40 4z"/>
-              <path class="c2" d="M104 130c12-6 26 0 26 12-12 6-24 2-26-12z"/>
-              <path class="c3" d="M78 132c4-10 16-12 22-4-4 10-16 12-22 4z"/>
-              <circle class="c4" cx="118" cy="98" r="6"/>
-            </g>
-            <g class="m-bubbles"><circle cx="86" cy="140" r="4"/><circle cx="112" cy="146" r="3"/><circle cx="98" cy="150" r="5"/></g>
-            <path class="m-shine" d="M70 92a36 36 0 0 1 22-20"/>
-          </svg>
+    <header>
+      <h1 class="hero-h"><span class="hl hl-1" data-chapter="bg">Dortmund</span><span class="hl hl-2" data-chapter="deep">wäscht<span class="slot"><img src="img/hanging-the-laundry-out-to-dry.webp" width="1600" height="1299" alt="Gemälde: Frauen hängen auf einer Wiese Wäsche an langen Leinen auf"></span></span></h1>
+      <div class="st f-deep hero-foot" data-chapter="deep">
+        <p class="lead rv">Jemand aus deinem Viertel holt deine Wäsche ab, wäscht, faltet und bringt sie zurück. Ab <b id="startPreisWaschen">1,50 €</b> pro kg, gefaltet <b id="startPreis">2,50 €</b>.</p>
+        <div class="act rv" style="--d:90ms">
+          <button class="btn btn-invert" type="button" data-go="bestellen">Wäsche abgeben <span class="arr" aria-hidden="true">→</span></button>
+          <p id="heroRating" hidden></p>
         </div>
-        <p class="door-sub">Ab <b id="startPreisWaschen">1,50 €</b> pro kg. Mit Trocknen und Falten <b id="startPreis">2,50 €</b>.</p>
-        <span class="btn btn-sun">Wäsche abgeben <span aria-hidden="true">→</span></span>
-      </a>
-      <div class="door door-money">
-        <p class="eyebrow">Für deine Waschmaschine</p>
-        <h1>So viel kannst du verdienen.</h1>
-        <p class="money"><span id="moneyOut">290 €</span><small> im Monat</small></p>
-        <div class="money-ctrl">
-          <label for="moneyRange"><span id="moneyN">3 Aufträge</span> pro Woche</label>
-          <input type="range" id="moneyRange" min="1" max="10" step="1" value="3">
-        </div>
-        <p class="fine" id="moneyFine">Beispiel: 8 kg mit Abholung, abzüglich ca. 1,50 € für Strom, Wasser und Waschmittel.</p>
-        <button class="btn btn-sun" type="button" data-go="waescher">Wäscher werden <span aria-hidden="true">→</span></button>
       </div>
-    </div>
-    <ul class="strip">
-      <li id="heroRating" hidden></li>
-      <li>Nur in Dortmund</li>
-      <li>Bezahlt wird bei Rückgabe</li>
-      <li>Nummern bleiben privat</li>
-    </ul>
-    <div class="flow-wrap">
-      <div class="head">
-        <p class="eyebrow">So läuft's</p>
-        <h2>Vom Wäschesack zurück in den Schrank.</h2>
-      </div>
-      <ol class="flow">
-        <li><span class="n">01</span><h3>Buchen</h3><p>Menge schätzen, Tag und Uhrzeit wählen. Dauert eine Minute.</p></li>
-        <li><span class="n">02</span><h3>Annehmen</h3><p>Ein Wäscher aus deinem Viertel nimmt an und meldet sich per WhatsApp.</p></li>
-        <li><span class="n">03</span><h3>Waschen</h3><p>Abgeholt oder selbst gebracht. Gewaschen, getrocknet, gefaltet, nie mit fremder Wäsche.</p></li>
-        <li><span class="n">04</span><h3>Zurück</h3><p>Gewogen wird bei der Übergabe. Bezahlt wird bei Rückgabe, bar oder per PayPal.</p></li>
+    </header>
+
+    <figure class="band rv" data-chapter="deep"><img src="img/hanging-the-laundry-out-to-dry.webp" width="1600" height="1299" loading="lazy" alt="Berthe Morisot, Wäsche zum Trocknen aufhängen, 1875: weite Wiese mit Wäscheleinen, dahinter ein Haus"></figure>
+
+    <section class="st f-bg s-steps" data-chapter="bg" aria-label="So läuft es">
+      <ol>
+        <li class="rv"><h2>Erst buchst du online.</h2><p>Menge schätzen, Tag und Uhrzeit wählen. Das dauert eine Minute.</p></li>
+        <li class="rv"><h2>Dann nimmt jemand an.</h2><p>Eine Wäscherin oder ein Wäscher aus deinem Viertel meldet sich per WhatsApp.</p></li>
+        <li class="rv"><h2>Dann wird gewaschen.</h2><p>Abgeholt oder selbst gebracht. Gewaschen, getrocknet, gefaltet und nie mit fremder Wäsche.</p></li>
+        <li class="rv"><h2>Bezahlt wird bei Rückgabe.</h2><p>Gewogen wird bei der Übergabe. Du zahlst direkt, bar oder per PayPal.</p></li>
       </ol>
-    </div>
+      <figure class="rv"><img src="img/fahrrader-im-kreuzviertel-1.webp" width="1600" height="900" loading="lazy" alt="Fahrrad mit Holzkiste auf dem Gepäckträger an einer Straße im Dortmunder Kreuzviertel"></figure>
+    </section>
+
+    <section class="st f-deep s-price" data-chapter="deep" aria-labelledby="pHead">
+      <h2 id="pHead" class="rv" aria-live="polite"><span id="pKgTxt">8 kg</span>, <span id="pModeTxt">gefaltet</span>: <span class="pblock" id="pTotal">24 €</span></h2>
+      <div class="calc rv" style="--d:90ms">
+        <label for="pKg" class="small">Wie viel Wäsche? Schieb oder tipp auf eine Menge.</label>
+        <input type="range" id="pKg" min="3" max="25" step="1" value="8">
+        <div class="segs" role="group" aria-label="Schnellauswahl">
+          <button type="button" class="pchip" data-pkg="5">Wäschekorb, 5 kg</button>
+          <button type="button" class="pchip" data-pkg="8">großer Sack, 8 kg</button>
+          <button type="button" class="pchip" data-pkg="12">2 Säcke, 12 kg</button>
+          <button type="button" class="pchip" data-pkg="18">Familien-Woche, 18 kg</button>
+        </div>
+        <div class="segs" role="radiogroup" aria-label="Leistung">
+          <label class="seg"><input type="radio" name="pL" value="komplett" checked><span>Waschen, trocknen, falten</span></label>
+          <label class="seg"><input type="radio" name="pL" value="waschen"><span>Nur waschen</span></label>
+        </div>
+        <div class="segs" role="radiogroup" aria-label="Abholung">
+          <label class="seg"><input type="radio" name="pT" value="abholung" checked><span>Abholen und bringen</span></label>
+          <label class="seg"><input type="radio" name="pT" value="selbst"><span>Ich bringe selbst</span></label>
+        </div>
+      </div>
+      <figure class="drum-vid rv" style="--d:120ms"><video autoplay muted loop playsinline preload="metadata" poster="vid/trommel.jpg" width="480" height="600" aria-label="Wäsche dreht sich in der Trommel einer Waschmaschine"><source src="vid/trommel.webm" type="video/webm"><source src="vid/trommel.mp4" type="video/mp4"></video></figure>
+      <p class="price-note rv" id="pNote" style="--d:160ms">Inklusive Abholen und Zurückbringen. Abgerechnet wird nach exaktem Wiegen bei der Übergabe.</p>
+      <button class="btn btn-invert go rv" type="button" id="pGo" style="--d:200ms">Für 8 kg buchen <span class="arr" aria-hidden="true">→</span></button>
+    </section>
+
+    <section class="st f-surface s-table" data-chapter="surface" aria-labelledby="tHead">
+      <h2 id="tHead" class="rv">Alle Preise, ohne Kleingedrucktes.</h2>
+      <table class="ptable rv" style="--d:90ms"><caption hidden>Preise</caption><tbody id="priceRows"></tbody></table>
+      <figure class="rv" style="--d:160ms"><img src="img/dortmund-nordstadt-0031.webp" width="1200" height="900" loading="lazy" alt="Altbauten und Bäume an einem Platz in der Dortmunder Nordstadt nach einem Regenschauer"></figure>
+    </section>
+
+    <section class="st f-deep s-cta" data-chapter="deep" aria-labelledby="cHead">
+      <h2 id="cHead" class="rv">Deine Maschine wäscht mit.</h2>
+      <div class="earn rv" style="--d:90ms">
+        <p class="money"><span id="moneyOut">290 €</span><small> im Monat</small></p>
+        <label for="moneyRange">bei <span id="moneyN">3 Aufträge</span> pro Woche</label>
+        <input type="range" id="moneyRange" min="1" max="10" step="1" value="3">
+        <p class="small" id="moneyFine">Beispiel: 8 kg mit Abholung, abzüglich ca. 1,50 € für Strom, Wasser und Waschmittel.</p>
+      </div>
+      <button class="btn btn-invert go rv" type="button" data-go="waescher" style="--d:160ms">Wäscher werden <span class="arr" aria-hidden="true">→</span></button>
+    </section>
+
+    <section class="st f-bg s-faq" data-chapter="bg" aria-labelledby="qHead">
+      <h2 class="q h rv" id="qHead">Häufige Fragen</h2><span class="a"></span>
+      <h3 class="q rv">Was darf nicht in den Sack?</h3>
+      <p class="a rv" style="--d:90ms">Nichts Empfindliches: keine Wolle, Seide oder Daunen und nichts mit „nur Handwäsche“ oder „nur chemische Reinigung“. Und bitte alle Taschen leeren.</p>
+      <h3 class="q rv">Wann und wie bezahle ich?</h3>
+      <p class="a rv" style="--d:90ms">Bei der Rückgabe, direkt an deine Wäscherin oder deinen Wäscher, bar oder per PayPal. Abgerechnet wird nach exaktem Wiegen bei der Übergabe.</p>
+      <h3 class="q rv">Wer bekommt meine Nummer?</h3>
+      <p class="a rv" style="--d:90ms">Nur die Person, die deinen Auftrag annimmt. Erst dann bekommt ihr per Knopfdruck den WhatsApp-Kontakt zueinander. Öffentlich ist keine Nummer.</p>
+      <h3 class="q rv">Wie schnell ist sie zurück?</h3>
+      <p class="a rv" style="--d:90ms" id="faqSpeed">Normal am nächsten Tag. Mit Express am selben Abend, für 1,50 € pro kg mehr. Gefaltet geht Express nur mit Trockner.</p>
+      <h3 class="q rv">Was, wenn etwas kaputtgeht?</h3>
+      <p class="a rv" style="--d:90ms">Das klärst du direkt mit deinem Wäscher, wie bei jedem privaten Auftrag. Dortmund wäscht vermittelt nur. Ein Foto vom offenen Sack bei der Übergabe hilft beiden.</p>
+      <h3 class="q rv">In welchen Stadtteilen?</h3>
+      <p class="a rv" style="--d:90ms" id="faqViertel">In ganz Dortmund, je nachdem, wo sich Wäscher angemeldet haben.</p>
+      <figure class="rv"><img src="img/b-trieb-kreuzviertel-dortmund.webp" width="1600" height="900" loading="lazy" alt="Eckkneipe mit Tischen vor der Tür im Dortmunder Kreuzviertel"></figure>
+    </section>
   </section>
 
   <!-- WÄSCHE ABGEBEN -->
   <section class="view" id="view-bestellen" role="tabpanel" aria-labelledby="tab-bestellen" hidden>
     <div class="head">
-      <p class="eyebrow">Wäsche abgeben</p>
       <h2>Abgeholt, gewaschen, gefaltet.</h2>
       <p class="muted">In einer Minute gebucht. Ein Wäscher aus deinem Viertel meldet sich per WhatsApp.</p>
     </div>
@@ -479,7 +568,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
         </div>
       </form>
       <aside class="summary" aria-live="polite">
-        <p class="eyebrow">Dein Auftrag</p>
+        <p class="ptitle">Dein Auftrag</p>
         <div id="sumLines"></div>
         <div class="total"><span>Geschätzt</span><b id="sumTotal">24 €</b></div>
         <p style="font-size:.88rem"><b>Abrechnung nach exaktem Wiegen bei Übergabe.</b> <span class="muted">Du bezahlst bei der Rückgabe direkt an deine Wäscherin oder deinen Wäscher, bar oder per PayPal.</span></p>
@@ -490,7 +579,6 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
   <!-- OFFENE AUFTRÄGE -->
   <section class="view" id="view-auftraege" role="tabpanel" aria-labelledby="tab-auftraege" hidden>
     <div class="head">
-      <p class="eyebrow">Offene Aufträge</p>
       <h2>Verdien Geld mit deiner Waschmaschine</h2>
       <p class="muted">Such dir einen Auftrag in deiner Nähe aus. Du holst ab, wäschst, faltest und bringst zurück. Das Geld bekommst du bei der Rückgabe.</p>
     </div>
@@ -514,7 +602,6 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
   <section class="view" id="view-waescher" role="tabpanel" aria-labelledby="tab-waescher" hidden>
     <div id="wLoggedOut" class="view">
       <div class="head">
-        <p class="eyebrow">Für Wäscher</p>
         <h2>Wasch für Nachbarn und verdien nebenbei Geld</h2>
         <p class="muted">Kostenlos registrieren, Aufträge in deinem Viertel annehmen, waschen, falten, zurückbringen. Du entscheidest selbst, wann und wie viel.</p>
       </div>
@@ -534,7 +621,7 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
         </div>
         <p class="hint full" style="grid-column:1/-1">Passwort vergessen? Schreib an <a href="mailto:albrecht.sven89@gmail.com">albrecht.sven89@gmail.com</a>.</p>
       </form>
-      <p class="eyebrow">Neu hier? Kostenlos registrieren</p>
+      <p class="ptitle">Neu hier? Kostenlos registrieren</p>
       <div class="formwrap">
         <form id="wForm" novalidate>
           <div class="field">
@@ -573,11 +660,11 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
         </form>
         <aside style="display:flex;flex-direction:column;gap:16px;min-width:0">
           <div class="side">
-            <p class="eyebrow">Was bei dir hängen bleibt</p>
+            <p class="ptitle">Was bei dir hängen bleibt</p>
             <div id="profitSide"></div>
           </div>
           <div class="side" style="background:var(--surface);border:1.5px solid var(--line)">
-            <p class="eyebrow">So läuft's</p>
+            <p class="ptitle">So läuft's</p>
             <ul>
               <li>Jeder Auftrag wird einzeln gewaschen, nie mit fremder Wäsche gemischt.</li>
               <li>Pflegeetiketten beachten, im Zweifel lieber kälter waschen.</li>
@@ -591,7 +678,6 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
 
     <div id="wLoggedIn" class="view" hidden>
       <div class="head">
-        <p class="eyebrow">Für Wäscher</p>
         <h2 id="wHello">Hallo!</h2>
         <p class="muted" id="wInfo"></p>
         <p class="rating-line" id="wRating"></p>
@@ -614,11 +700,11 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
         <button class="btn btn-sun" type="button" data-go="auftraege">Offene Aufträge ansehen</button>
       </div>
       <div>
-        <p class="eyebrow" style="margin-bottom:12px">Deine angenommenen Aufträge</p>
+        <p class="ptitle" style="margin-bottom:12px">Deine angenommenen Aufträge</p>
         <div class="list" id="wJobs"></div>
       </div>
       <div class="feedback" id="wFeedbackWrap" hidden>
-        <p class="eyebrow">Was deine Kunden sagen <span class="hint" style="text-transform:none;letter-spacing:0">(nur für dich sichtbar)</span></p>
+        <p class="ptitle">Was deine Kunden sagen <span class="hint" style="text-transform:none;letter-spacing:0">(nur für dich sichtbar)</span></p>
         <ul id="wFeedback"></ul>
       </div>
       <details class="side" style="background:var(--surface);border:1.5px solid var(--line)">
@@ -638,7 +724,6 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
   <!-- MEINE AUFTRÄGE -->
   <section class="view" id="view-meine" role="tabpanel" aria-labelledby="tab-meine" hidden>
     <div class="head">
-      <p class="eyebrow">Meine Aufträge</p>
       <h2>Deine Wäsche im Blick</h2>
     </div>
     <div id="justCreated"></div>
@@ -654,9 +739,19 @@ input[type=password]{font:inherit;color:var(--ink);background:var(--bg);border:1
     </div>
   </section>
 
-  <footer>
-    <p><b>Dortmund wäscht vermittelt nur.</b> Der Vertrag über das Waschen kommt direkt zwischen Kunde und Wäscherin oder Wäscher zustande. Bezahlt wird direkt untereinander. Wir prüfen weder Nutzer noch Aufträge.</p>
-    <nav class="legal" aria-label="Rechtliches"><a href="nutzungsbedingungen.html">Nutzungsbedingungen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
+  <footer class="f-deep" data-chapter="deep">
+    <div class="st foot-top">
+      <div class="invite">
+        <p class="big">Wäsche voll? Ab in den Sack.</p>
+        <button class="btn btn-invert" type="button" data-go="bestellen">Wäsche abgeben <span class="arr" aria-hidden="true">→</span></button>
+      </div>
+      <nav class="legal" aria-label="Rechtliches"><a href="nutzungsbedingungen.html">Nutzungsbedingungen</a><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></nav>
+    </div>
+    <div class="st foot-fine small">
+      <p><b>Dortmund wäscht vermittelt nur.</b> Der Vertrag über das Waschen kommt direkt zwischen Kunde und Wäscherin oder Wäscher zustande. Bezahlt wird direkt untereinander. Wir prüfen weder Nutzer noch Aufträge.</p>
+      <p class="credits">Bilder: <a href="https://commons.wikimedia.org/wiki/File:1875_Morisot_Laundry.jpg">Berthe Morisot, „Hanging the Laundry out to Dry“</a>, gemeinfrei · <a href="https://commons.wikimedia.org/wiki/File:Fahrr%C3%A4der_im_Kreuzviertel_(1).jpg">„Fahrräder im Kreuzviertel“</a> und <a href="https://commons.wikimedia.org/wiki/File:B-Trieb,_Kreuzviertel_Dortmund.jpg">„B-Trieb, Kreuzviertel Dortmund“</a> von Joehawkins, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> · <a href="https://commons.wikimedia.org/wiki/File:Dortmund-Nordstadt-0031.JPG">„Dortmund-Nordstadt-0031“</a> von Mbdortmund, <a href="https://creativecommons.org/licenses/by-sa/2.5/">CC BY-SA 2.5</a>; <a href="https://commons.wikimedia.org/wiki/File:The_washing_machine_that_is_being_operated.webm">„The washing machine that is being operated“</a> von Fitrah 9131, <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0</a>, Ausschnitt; alle via Wikimedia Commons, verkleinert.</p>
+    </div>
+    <p class="wordmark" aria-hidden="true">Dortmund wäscht</p>
   </footer>
 </div>
 
@@ -1129,11 +1224,11 @@ async function renderAlert(box, vorauswahl) {
   }
   box.replaceChildren(el("div", { class: "alert" },
     el("div", { style: "display:flex;flex-direction:column;gap:12px" },
-      el("p", { class: "eyebrow", text: aktiv.length ? "Benachrichtigungen" : "Gerade nichts frei" }),
+      el("p", { class: "ptitle", text: aktiv.length ? "Benachrichtigungen" : "Gerade nichts frei" }),
       el("h3", { text: aktiv.length ? "Du verpasst keinen Auftrag" : `Benachrichtige mich sofort, sobald ein neuer Auftrag in ${ort} reinkommt` }),
       el("p", { class: "muted", text: "Du bekommst eine Nachricht aufs Handy, wie bei einer App. Wer zuerst annimmt, bekommt den Auftrag." }),
       ...inhalt),
-    el("div", { style: "display:flex;flex-direction:column;gap:8px" }, el("p", { class: "eyebrow", text: "Was bei dir hängen bleibt" }), profitEl(8))));
+    el("div", { style: "display:flex;flex-direction:column;gap:8px" }, el("p", { class: "ptitle", text: "Was bei dir hängen bleibt" }), profitEl(8))));
 }
 async function loadBoard() {
   if (!LIVE) { offene = []; renderBoard(); return; }
@@ -1284,6 +1379,71 @@ $("startPreis").textContent = eur(LEISTUNGEN.komplett.kg);
 $("startPreisWaschen").textContent = eur(LEISTUNGEN.waschen.kg);
 $("moneyFine").textContent = `Beispiel: 8 kg mit Abholung = ${eur(preisFuer(8, false, true))}, abzüglich ca. ${eur(KOSTEN_PRO_LADUNG)} für Strom, Wasser und Waschmittel.`;
 updateMoney();
+
+// ===== Startseite: Preis als Satz =====
+const pWert = n => document.querySelector(`input[name="${n}"]:checked`).value;
+function updatePrice() {
+  const kg = Number($("pKg").value), l = pWert("pL"), hol = pWert("pT") === "abholung";
+  $("pKgTxt").textContent = `${kg} kg`;
+  $("pModeTxt").textContent = l === "komplett" ? "gefaltet" : "nur gewaschen";
+  $("pTotal").textContent = eur(preisFuer(kg, false, hol, l));
+  $("pNote").textContent = (hol ? `Inklusive Abholen und Zurückbringen für ${eur(PREIS.transport)}.` : "Du bringst selbst, die Adresse kommt per WhatsApp.")
+    + (kg * leistungVon(l).kg < leistungVon(l).minimum ? ` Mindestbetrag ${eur(leistungVon(l).minimum)}.` : "")
+    + " Abgerechnet wird nach exaktem Wiegen bei der Übergabe.";
+  $("pGo").firstChild.textContent = `Für ${kg} kg buchen `;
+  document.querySelectorAll(".pchip").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.pkg) === kg)));
+}
+$("pKg").addEventListener("input", updatePrice);
+document.querySelectorAll('input[name="pL"], input[name="pT"]').forEach(i => i.addEventListener("change", updatePrice));
+document.querySelectorAll(".pchip").forEach(b => b.addEventListener("click", () => { $("pKg").value = b.dataset.pkg; updatePrice(); }));
+$("pGo").addEventListener("click", () => {
+  // Auswahl in das Bestellformular übernehmen
+  $("oKg").value = $("pKg").value;
+  document.querySelector(`input[name="leistung"][value="${pWert("pL")}"]`).checked = true;
+  document.querySelector(`input[name="transport"][value="${pWert("pT")}"]`).checked = true;
+  updateSummary();
+  show("bestellen"); window.scrollTo({ top: 0 });
+});
+updatePrice();
+
+// ===== Startseite: Preistabelle und Fragen aus denselben Zahlen =====
+{
+  const k = LEISTUNGEN.komplett, w = LEISTUNGEN.waschen;
+  const rows = [
+    ["Waschen, trocknen, falten", "kommt schrankfertig zurück", `${eur(k.kg)} / kg`],
+    ["Nur waschen", "kommt feucht zurück", `${eur(w.kg)} / kg`],
+    ["Mindestbetrag", "gefaltet", eur(k.minimum)],
+    ["Mindestbetrag", "nur gewaschen", eur(w.minimum)],
+    ["Abholen und bringen", "Pauschale, hin und zurück", eur(PREIS.transport), "gap"],
+    ["Selbst bringen", "Adresse kommt per WhatsApp", eur(0)],
+    ["Express", "zurück am selben Abend", `+ ${eur(PREIS.expressAufschlag)} / kg`],
+    ["Bezahlung", "bei Rückgabe, bar oder PayPal", "direkt", "gap"]
+  ];
+  $("priceRows").replaceChildren(...rows.map(([a, b, c, g]) => el("tr", g ? { class: g } : {}, el("th", { scope: "row", text: a }), el("td", { text: b }), el("td", { text: c }))));
+  $("faqSpeed").textContent = `Normal am nächsten Tag. Mit Express am selben Abend, für ${eur(PREIS.expressAufschlag)} pro kg mehr. Gefaltet geht Express nur mit Trockner.`;
+  $("faqViertel").textContent = `Wäscher holen ab in ${STADTTEILE.slice(0, -1).join(", ")} und ${STADTTEILE.at(-1)}. Wer selbst bringt, fährt zum Wäscher.`;
+}
+
+// ===== Bewegung: Auftauchen und Kopfzeile in der Farbe des Abschnitts =====
+{
+  const items = document.querySelectorAll(".rv");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px" });
+    items.forEach(i => io.observe(i));
+  } else items.forEach(i => i.classList.add("in"));
+  window.__rvOK = true;
+  const nav = document.querySelector("nav.top");
+  let tick = false;
+  const tint = () => {
+    tick = false;
+    const y = nav.getBoundingClientRect().bottom + 2;
+    nav.dataset.on = document.elementFromPoint(24, y)?.closest("[data-chapter]")?.dataset.chapter || "bg";
+  };
+  addEventListener("scroll", () => { if (!tick) { tick = true; requestAnimationFrame(tint); } }, { passive: true });
+  addEventListener("hashchange", tint);
+  document.addEventListener("click", () => requestAnimationFrame(tint));
+  tint();
+}
 
 // ===== Bewertungen gesamt =====
 async function loadRating() {
